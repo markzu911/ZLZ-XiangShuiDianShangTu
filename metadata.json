@@ -1,0 +1,6 @@
+{
+  "name": "Perfume AI Studio",
+  "description": "One-click e-commerce image generator for perfume products using Gemini 3.1",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
