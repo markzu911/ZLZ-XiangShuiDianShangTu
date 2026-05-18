@@ -121,171 +121,36 @@ app.post("/api/ai/generate", async (req, res) => {
   }
 });
 
-// --- SaaS Integration APIs (as per doc) ---
+// --- SaaS Integration APIs (Proxied to aibigtree.com) ---
 
-// A. Launch
-app.post("/api/tool/launch", (req, res) => {
-  const { userId, toolId } = req.body;
-  const user = db.users.find(u => u.id === userId) || db.users[0];
-  const tool = db.tools.find(t => t.id === toolId) || db.tools[0];
-  
-  res.json({
-    success: true,
-    data: { user, tool }
-  });
-});
+const SAAS_BASE_URL = "http://aibigtree.com";
 
-// B. Verify
-app.post("/api/tool/verify", (req, res) => {
-  const { userId, toolId } = req.body;
-  const user = db.users.find(u => u.id === userId) || db.users[0];
-  const tool = db.tools.find(t => t.id === toolId) || db.tools[0];
+app.all(["/api/tool/*", "/api/upload/*"], async (req, res) => {
+  const targetUrl = `${SAAS_BASE_URL}${req.path}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
+  console.log(`Proxying SaaS request to: ${targetUrl}`);
 
-  if (user.integral < tool.integral) {
-    return res.status(400).json({
-      success: false,
-      message: `积分不足，还差 ${tool.integral - user.integral} 积分`
+  try {
+    const saasRes = await fetch(targetUrl, {
+      method: req.method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(req.headers.authorization ? { 'Authorization': req.headers.authorization } : {}),
+      },
+      body: req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS' ? JSON.stringify(req.body) : undefined,
     });
-  }
 
-  res.json({
-    success: true,
-    data: {
-      currentIntegral: user.integral,
-      requiredIntegral: tool.integral
+    const contentType = saasRes.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      const data = await saasRes.json();
+      res.status(saasRes.status).json(data);
+    } else {
+      const text = await saasRes.text();
+      res.status(saasRes.status).send(text);
     }
-  });
-});
-
-// C. Consume
-app.post("/api/tool/consume", (req, res) => {
-  const { userId, toolId } = req.body;
-  const user = db.users.find(u => u.id === userId);
-  const tool = db.tools.find(t => t.id === toolId);
-
-  if (!user || !tool) return res.status(404).json({ success: false, message: "User or Tool not found" });
-
-  user.integral -= tool.integral;
-  
-  // Set pending flag for upload
-  const pendingKey = `${userId}:${toolId}`;
-  db.pendingUploads.set(pendingKey, { timestamp: Date.now() });
-
-  res.json({
-    success: true,
-    message: "积分扣除成功",
-    data: {
-      currentIntegral: user.integral,
-      consumedIntegral: tool.integral,
-      toolId: tool.id
-    }
-  });
-});
-
-// D. Direct Token (OSS Upload)
-app.post("/api/upload/direct-token", (req, res) => {
-  const { userId, toolId, source, mimeType, fileName, fileSize } = req.body;
-  
-  const pendingKey = `${userId}:${toolId}`;
-  if (!db.pendingUploads.has(pendingKey)) {
-    return res.status(403).json({ success: false, message: "No pending consumption found" });
+  } catch (err: any) {
+    console.error("SaaS Proxy Error:", err);
+    res.status(500).json({ error: err.message });
   }
-
-  const objectKey = `result/${Date.now()}_${fileName || 'image.png'}`;
-  
-  // In a real Aliyun OSS setup, we'd generate a signed PUT URL here.
-  // For this demo, we'll return a mock URL that points to our own server.
-  const uploadUrl = `http://localhost:3000/api/mock-oss-upload?key=${objectKey}`;
-
-  res.json({
-    success: true,
-    source: "result",
-    method: "PUT",
-    objectKey,
-    fileName: objectKey,
-    uploadUrl,
-    ossUploadUrl: uploadUrl,
-    uploadStrategy: "oss-direct",
-    headers: {
-      "Content-Type": mimeType || "image/png"
-    },
-    commitUrl: "/api/upload/commit",
-    expiresIn: 600
-  });
-});
-
-// Mock OSS Upload Endpoint
-app.put("/api/mock-oss-upload", (req, res) => {
-  const key = req.query.key as string;
-  console.log(`Mock OSS: Uploading ${key}...`);
-  // In reality, save the stream to a bucket or local file
-  res.status(200).send();
-});
-
-// E. Commit
-app.post("/api/upload/commit", (req, res) => {
-  const { userId, toolId, source, objectKey, fileSize } = req.body;
-  
-  const pendingKey = `${userId}:${toolId}`;
-  // In prod, check if consumption exists and objectKey is valid
-  
-  const recordId = `img_${Math.random().toString(36).substr(2, 9)}`;
-  const publicUrl = `https://picsum.photos/seed/${recordId}/1024/1024`; // Mock URL
-
-  const newImage = {
-    id: recordId,
-    recordId,
-    userId,
-    userName: db.users.find(u => u.id === userId)?.name || "Unknown",
-    url: publicUrl,
-    fileName: objectKey,
-    fileSize: fileSize || 0,
-    createdAt: new Date().toISOString()
-  };
-
-  db.userImages.push(newImage);
-  db.pendingUploads.delete(pendingKey);
-
-  res.json({
-    success: true,
-    source: "result",
-    savedToRecords: true,
-    recordId,
-    url: publicUrl,
-    fileName: objectKey,
-    image: newImage
-  });
-});
-
-// F. Get User Images
-app.get("/api/upload/image", (req, res) => {
-  const { userId, role } = req.query;
-  
-  let images = db.userImages;
-  if (role !== '2') {
-    images = images.filter(img => img.userId === userId);
-  }
-
-  res.json({
-    success: true,
-    data: images,
-    total: images.length
-  });
-});
-
-// G. Delete Image
-app.delete("/api/upload/image", (req, res) => {
-  const { id, userId, role } = req.body;
-  
-  const index = db.userImages.findIndex(img => img.id === id);
-  if (index === -1) return res.status(404).json({ success: false, message: "Image not found" });
-
-  if (role !== '2' && db.userImages[index].userId !== userId) {
-    return res.status(403).json({ success: false, message: "Forbidden" });
-  }
-
-  db.userImages.splice(index, 1);
-  res.json({ success: true, message: "Deleted successfully" });
 });
 
 // --- Server Setup ---
