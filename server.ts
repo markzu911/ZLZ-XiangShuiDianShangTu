@@ -122,19 +122,18 @@ app.post("/api/ai/generate", async (req, res) => {
 });
 
 // --- SaaS Integration APIs (Proxied to aibigtree.com) ---
-
 const SAAS_BASE_URL = "http://aibigtree.com";
 
-app.all(["/api/tool/*", "/api/upload/*"], async (req, res) => {
+const proxyToSaas = async (req: express.Request, res: express.Response) => {
   const targetUrl = `${SAAS_BASE_URL}${req.path}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
-  console.log(`Proxying SaaS request to: ${targetUrl}`);
+  console.log(`Proxying SaaS request to: ${targetUrl} (${req.method})`);
 
   try {
     const saasRes = await fetch(targetUrl, {
       method: req.method,
       headers: {
         'Content-Type': 'application/json',
-        ...(req.headers.authorization ? { 'Authorization': req.headers.authorization } : {}),
+        ...(req.headers.authorization ? { 'Authorization': req.headers.authorization as string } : {}),
       },
       body: req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS' ? JSON.stringify(req.body) : undefined,
     });
@@ -151,7 +150,10 @@ app.all(["/api/tool/*", "/api/upload/*"], async (req, res) => {
     console.error("SaaS Proxy Error:", err);
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+app.all("/api/tool/*", proxyToSaas);
+app.all("/api/upload/*", proxyToSaas);
 
 // --- Server Setup ---
 
