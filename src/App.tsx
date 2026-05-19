@@ -54,6 +54,7 @@ export default function App() {
 
   // State
   const [activeTab, setActiveTab] = useState<'step2' | 'step3' | 'gallery'>('step2');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult>({ 
     title: '', 
@@ -363,14 +364,37 @@ export default function App() {
   };
 
   return (
-    <div className="flex w-full min-h-screen bg-white text-gray-900 font-sans overflow-y-auto">
+    <div className="flex w-full min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden">
+      {/* Sidebar Overlay (Mobile) */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar: Step 1 & History */}
-      <aside className="w-80 border-r border-gray-50 flex flex-col bg-[#F9FAFB] flex-shrink-0 min-h-screen">
-        <div className="p-6 border-b border-gray-50 bg-white">
-          <div className="flex items-center gap-1 mb-6">
+      <aside className={`
+        fixed inset-y-0 left-0 z-[70] w-72 md:w-80 border-r border-gray-50 flex flex-col bg-[#F9FAFB] transition-transform duration-300 lg:static lg:translate-x-0 lg:flex-shrink-0
+        ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}
+      `}>
+        <div className="p-4 md:p-6 border-b border-gray-50 bg-white flex justify-between items-center">
+          <div className="flex items-center gap-1">
             <div className="w-5 h-5 bg-black rounded flex items-center justify-center text-[10px] text-white font-bold">1</div>
             <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wider">香水上传与分析</span>
           </div>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden p-2 text-gray-400 hover:text-black"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
           <div className="space-y-4">
             <div 
@@ -393,7 +417,6 @@ export default function App() {
               <input type="file" ref={fileInputRef} onChange={handleUpload} className="hidden" accept="image/*" />
             </div>
           </div>
-        </div>
 
         {/* History Section */}
         <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
@@ -463,55 +486,64 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col bg-white min-h-screen">
         {/* Navigation Tabs */}
-        <header className="h-16 border-b border-gray-50 flex items-center px-10 gap-12 flex-shrink-0 sticky top-0 bg-white/80 backdrop-blur-sm z-10">
+        <header className="h-14 md:h-16 border-b border-gray-50 flex items-center px-4 md:px-10 gap-6 md:gap-12 flex-shrink-0 sticky top-0 bg-white/80 backdrop-blur-sm z-10 overflow-x-auto no-scrollbar">
+          <button 
+            onClick={() => setIsSidebarOpen(true)}
+            className="lg:hidden p-2 text-gray-400 hover:text-black flex-shrink-0"
+          >
+            <Upload size={18} />
+          </button>
+
           <button 
             onClick={() => setActiveTab('step2')}
-            className={`h-full flex items-center gap-2 relative transition-colors ${
+            className={`h-full flex items-center gap-2 relative transition-colors flex-shrink-0 ${
               activeTab === 'step2' ? 'text-black font-bold' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <span className="text-sm">第2步 | 参数设置</span>
+            <span className="text-xs md:text-sm">参数设置</span>
             {activeTab === 'step2' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-[#FF6B00]" />}
           </button>
           <button 
             disabled={backgroundImages.length === 0 && !isGenerating}
             onClick={() => setActiveTab('step3')}
-            className={`h-full flex items-center gap-2 relative transition-colors disabled:opacity-30 ${
+            className={`h-full flex items-center gap-2 relative transition-colors disabled:opacity-30 flex-shrink-0 ${
               activeTab === 'step3' ? 'text-black font-bold' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <span className="text-sm">第3步 | 生成结果 ({backgroundImages.length}/3)</span>
+            <span className="text-xs md:text-sm">生成结果</span>
             {activeTab === 'step3' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-[#FF6B00]" />}
           </button>
 
           <button 
             onClick={() => setActiveTab('gallery')}
-            className={`h-full flex items-center gap-2 relative transition-colors ${
+            className={`h-full flex items-center gap-2 relative transition-colors flex-shrink-0 ${
               activeTab === 'gallery' ? 'text-black font-bold' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <span className="text-sm">我的图片库 ({gallery.length})</span>
+            <span className="text-xs md:text-sm">图片库</span>
             {activeTab === 'gallery' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-1 bg-[#FF6B00]" />}
           </button>
 
-          <div className="ml-auto flex items-center gap-6">
+          <div className="ml-auto hidden sm:flex items-center gap-6 flex-shrink-0">
             {user && (
-              <div className="flex items-center gap-3 px-4 py-2 bg-orange-50 rounded-full border border-orange-100">
-                <Sparkles className="text-orange-500 w-4 h-4" />
-                <span className="text-xs font-bold text-orange-700">可用积分: {user.integral}</span>
-              </div>
-            )}
-            {error && (
-              <div className="flex items-center gap-2 text-red-500 text-xs font-bold bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">
-                <AlertCircle size={14} />
-                {error}
+              <div className="flex items-center gap-3 px-3 py-1.5 bg-orange-50 rounded-full border border-orange-100">
+                <Sparkles className="text-orange-500 w-3.5 h-3.5" />
+                <span className="text-[10px] md:text-xs font-bold text-orange-700">{user.integral}</span>
               </div>
             )}
           </div>
         </header>
 
+        {/* Mobile Header Balance Display */}
+        {user && (
+          <div className="sm:hidden px-4 py-2 bg-orange-50/50 border-b border-orange-100 flex justify-center items-center gap-2">
+            <Sparkles size={12} className="text-orange-500" />
+            <span className="text-[10px] font-bold text-orange-700 uppercase tracking-widest">可用积分: {user.integral}</span>
+          </div>
+        )}
+
         {/* Tab Content */}
-        <div className="flex-1 p-10 flex flex-col">
+        <div className="flex-1 p-4 md:p-10 flex flex-col">
           <AnimatePresence mode="wait">
             {activeTab === 'step2' ? (
               <motion.div 
@@ -519,51 +551,51 @@ export default function App() {
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
-                className="w-full flex flex-col space-y-8 max-w-7xl mx-auto pb-10"
+                className="w-full flex flex-col space-y-4 md:space-y-8 max-w-7xl mx-auto pb-10"
               >
                 {/* Visual Style Selection */}
-                <div className="bg-white rounded-3xl border border-gray-50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-8 space-y-6">
+                <div className="bg-white rounded-[32px] border border-gray-50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-indigo-50 rounded-2xl flex items-center justify-center">
                       <Sparkles className="text-indigo-500 w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-gray-800">选择画面风格</h3>
-                      <p className="text-[10px] text-gray-400 font-medium">AI 将根据风格为您构建纯净渲染背景</p>
+                      <h3 className="text-sm md:text-base font-bold text-gray-800">选择画面风格</h3>
+                      <p className="text-[10px] text-gray-400 font-medium">AI 将为您构建纯净渲染背景</p>
                     </div>
                   </div>
 
-                  <div className="flex gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     {STYLES.map(s => (
                       <button 
                         key={s.id}
                         onClick={() => setStyle(s.id)}
-                        className={`flex-1 px-4 py-8 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
+                        className={`px-3 py-6 md:py-8 rounded-2xl border transition-all flex flex-col items-center gap-3 ${
                           style === s.id 
-                            ? 'bg-black text-white border-black shadow-xl scale-[1.02]' 
+                            ? 'bg-black text-white border-black shadow-xl' 
                             : 'bg-white text-gray-400 border-gray-100 hover:border-black hover:text-black'
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${style === s.id ? 'bg-white/20' : 'bg-gray-50 group-hover:bg-gray-100'}`}>
-                          <ImageIcon size={20} />
+                        <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center ${style === s.id ? 'bg-white/20' : 'bg-gray-50 group-hover:bg-gray-100'}`}>
+                          <ImageIcon size={18} />
                         </div>
-                        <span className="text-xs font-bold">{s.name}</span>
+                        <span className="text-[11px] md:text-xs font-bold">{s.name}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Settings Card */}
-                <div className="bg-white rounded-3xl border border-gray-50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-8 space-y-10">
-                  <div className="grid grid-cols-2 gap-20">
+                <div className="bg-white rounded-[32px] border border-gray-50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 md:p-8 space-y-8 md:space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-20">
                     <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">画幅比例选择</label>
-                      <div className="flex gap-2">
+                      <label className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">画幅比例选择</label>
+                      <div className="flex flex-wrap gap-2">
                         {RATIOS.map(r => (
                           <button 
                             key={r}
                             onClick={() => setAspectRatio(r)}
-                            className={`px-5 py-2.5 rounded-lg text-xs font-bold border transition-all ${
+                            className={`flex-1 min-w-[60px] py-2 md:py-2.5 rounded-lg text-xs font-bold border transition-all ${
                               aspectRatio === r ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50 hover:border-gray-300'
                             }`}
                           >
@@ -573,13 +605,13 @@ export default function App() {
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">输出分辨率</label>
-                      <div className="flex gap-2">
+                      <label className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">输出分辨率</label>
+                      <div className="flex flex-wrap gap-2">
                         {QUALITIES.map(q => (
                           <button 
                             key={q}
                             onClick={() => setQuality(q)}
-                            className={`px-5 py-2.5 rounded-lg text-xs font-bold border transition-all ${
+                            className={`flex-1 min-w-[60px] py-2 md:py-2.5 rounded-lg text-xs font-bold border transition-all ${
                               quality === q ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50 hover:border-gray-300'
                             }`}
                           >
@@ -593,10 +625,10 @@ export default function App() {
                   <button 
                     disabled={!originalImage || isGenerating}
                     onClick={handleGenerate}
-                    className="w-full py-6 bg-black text-white rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-[0.99] shadow-2xl shadow-black/10"
+                    className="w-full h-14 md:h-16 bg-black text-white rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-[0.99] shadow-2xl shadow-black/10 disabled:opacity-30"
                   >
-                    <Sparkles size={20} />
-                    立即生成 3 个系列视角
+                    {isGenerating ? <Loader2 className="animate-spin w-5 h-5" /> : <Sparkles size={20} />}
+                    {isGenerating ? '正在拼命分析生成中...' : '立即生成 3 个系列视角'}
                   </button>
                 </div>
               </motion.div>
@@ -606,18 +638,18 @@ export default function App() {
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
-                className="w-full flex gap-8 max-w-7xl mx-auto pb-10 h-[calc(100vh-180px)]"
+                className="w-full flex flex-col lg:flex-row gap-6 md:gap-8 max-w-7xl mx-auto pb-10"
               >
                 {/* Left: Preview with Overlay */}
-                <div className="flex-1 bg-[#F9FAFB] rounded-[40px] border border-gray-50 flex flex-col overflow-hidden relative group shadow-sm bg-white">
-                  <div className="h-14 border-b bg-white flex items-center justify-between px-10">
-                    <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">效果预览 (含有排版)</span>
+                <div className="flex-1 bg-[#F9FAFB] rounded-[32px] md:rounded-[40px] border border-gray-50 flex flex-col overflow-hidden relative group shadow-sm bg-white min-h-[400px] md:min-h-0">
+                  <div className="h-12 md:h-14 border-b bg-white flex items-center justify-between px-6 md:px-10">
+                    <span className="text-[9px] md:text-[10px] font-black text-gray-300 uppercase tracking-widest">效果预览 (含动态排版)</span>
                   </div>
 
-                  <div className="flex-1 flex items-center justify-center p-8 overflow-hidden relative">
+                  <div className="flex-1 flex items-center justify-center p-4 md:p-8 overflow-hidden relative">
                     {isGenerating ? (
-                      <div className="text-center space-y-6">
-                        <div className="w-16 h-16 mx-auto relative">
+                      <div className="text-center space-y-4">
+                        <div className="w-12 h-12 md:w-16 md:h-16 mx-auto relative">
                           <div className="absolute inset-0 border-2 border-gray-100 rounded-full" />
                           <motion.div 
                             className="absolute inset-0 border-2 border-black rounded-full border-t-transparent"
@@ -625,14 +657,12 @@ export default function App() {
                             transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
                           />
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-black uppercase tracking-widest px-4 text-center">AI 正在生成 3 个视角背景与文案...</p>
-                        </div>
+                        <p className="text-[10px] md:text-xs font-bold text-black uppercase tracking-widest px-4 text-center">AI 正在全力构建中...</p>
                       </div>
                     ) : backgroundImages.length > 0 ? (
                       <div 
                         key={activeHistoryId + '-' + activeBgIndex}
-                        className="relative w-full h-full flex items-center justify-center shadow-2xl rounded-2xl overflow-hidden bg-gray-50"
+                        className="relative w-full h-full flex items-center justify-center shadow-xl md:shadow-2xl rounded-2xl overflow-hidden bg-gray-50"
                         style={{ containerType: 'size' }}
                       >
                         <img 
@@ -713,25 +743,25 @@ export default function App() {
                 </div>
 
                 {/* Right: Text Adjustment */}
-                <div className="w-96 flex flex-col gap-6">
-                  <div className="bg-white rounded-3xl border border-gray-100 p-8 space-y-6 shadow-sm">
-                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                <div className="w-full lg:w-96 flex flex-col gap-6">
+                  <div className="bg-white rounded-[32px] border border-gray-100 p-6 md:p-8 space-y-6 shadow-sm">
+                    <h3 className="text-xs md:text-sm font-bold text-gray-800 flex items-center gap-2">
                       <Sparkles size={16} className="text-orange-500" />
                       当前视角: {PERSPECTIVES[activeBgIndex]?.name}
                     </h3>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-4 md:space-y-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">广告主标题</label>
+                        <label className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">广告主标题</label>
                         <textarea 
                           value={analysis.title}
                           onChange={(e) => setAnalysis(prev => ({ ...prev, title: e.target.value }))}
-                          className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-1 focus:ring-black outline-none text-sm font-bold resize-none h-20"
+                          className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-1 focus:ring-black outline-none text-xs md:text-sm font-bold resize-none h-16 md:h-20"
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">产品核心卖点 (1-3个)</label>
-                        <div className="space-y-2">
+                        <label className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">产品核心卖点 (1-3个)</label>
+                        <div className="grid grid-cols-1 gap-2">
                           {analysis.sellingPoints.map((point, idx) => (
                             <div key={idx} className="flex gap-2">
                               <textarea 
@@ -741,7 +771,7 @@ export default function App() {
                                   newPoints[idx] = e.target.value;
                                   setAnalysis(prev => ({ ...prev, sellingPoints: newPoints }));
                                 }}
-                                className="flex-1 p-2 bg-gray-50 rounded-lg text-xs font-medium border-none focus:ring-1 focus:ring-black outline-none resize-none h-12"
+                                className="flex-1 p-2 bg-gray-50 rounded-lg text-xs font-medium border-none focus:ring-1 focus:ring-black outline-none resize-none h-10 md:h-12"
                               />
                               <button 
                                 onClick={() => {
@@ -757,7 +787,7 @@ export default function App() {
                           {analysis.sellingPoints.length < 3 && (
                             <button 
                               onClick={() => setAnalysis(prev => ({ ...prev, sellingPoints: [...prev.sellingPoints, '新增卖点'] }))}
-                              className="w-full py-2 border border-dashed border-gray-200 rounded-lg text-[10px] text-gray-400 hover:border-black hover:text-black transition-all"
+                              className="w-full py-2.5 border border-dashed border-gray-200 rounded-lg text-[10px] text-gray-400 hover:border-black hover:text-black transition-all"
                             >
                               + 添加卖点
                             </button>
@@ -765,23 +795,23 @@ export default function App() {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">底部补充信息</label>
+                        <label className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">底部补充信息</label>
                         <textarea 
                           value={analysis.bottomInfo}
                           onChange={(e) => setAnalysis(prev => ({ ...prev, bottomInfo: e.target.value }))}
-                          className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-1 focus:ring-black outline-none text-xs resize-none h-16"
+                          className="w-full p-3 bg-gray-50 rounded-xl border-none focus:ring-1 focus:ring-black outline-none text-xs resize-none h-12 md:h-16"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">全局字体颜色</label>
+                      <label className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-widest">全局字体颜色</label>
                       <div className="flex items-center gap-4">
                         <input 
                           type="color"
                           value={analysis.textColor}
                           onChange={(e) => setAnalysis(prev => ({ ...prev, textColor: e.target.value }))}
-                          className="w-12 h-12 rounded-xl cursor-pointer border-none p-0 overflow-hidden"
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-xl cursor-pointer border-none p-0 overflow-hidden"
                         />
                         <span className="text-xs font-mono text-gray-400">{analysis.textColor}</span>
                       </div>
@@ -791,10 +821,10 @@ export default function App() {
                   <button 
                     disabled={backgroundImages.length === 0 || isGenerating}
                     onClick={handleDownload}
-                    className="w-full py-5 bg-black text-white rounded-2xl font-bold text-sm transition-all flex items-center justify-center gap-3 hover:scale-[1.02] shadow-xl shadow-black/10 disabled:opacity-30"
+                    className="w-full h-14 md:h-16 bg-black text-white rounded-2xl font-bold text-xs md:text-sm transition-all flex items-center justify-center gap-3 hover:scale-[1.02] shadow-xl shadow-black/10 disabled:opacity-30 mb-8"
                   >
                     <Download size={20} />
-                    下载当前视角 (含文案)
+                    下载当前视角 (含动态排版)
                   </button>
                 </div>
               </motion.div>
@@ -883,9 +913,15 @@ export default function App() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full h-full flex items-center justify-center bg-black/50 rounded-3xl overflow-hidden"
+              className="relative w-full h-full flex items-center justify-center bg-black/50 md:rounded-3xl overflow-hidden"
               onClick={e => e.stopPropagation()}
             >
+              <button 
+                onClick={() => setIsFullScreen(false)}
+                className="absolute top-4 right-4 z-20 p-2 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full text-white transition-all"
+              >
+                <X size={24} />
+              </button>
               <img 
                 src={backgroundImages[activeBgIndex]} 
                 alt="Full View" 
