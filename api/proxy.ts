@@ -76,7 +76,7 @@ export default async function handler(req: any, res: any) {
         `;
 
         const response = await genAI.models.generateContent({
-          model: "gemini-1.5-flash",
+          model: "gemini-3-flash-preview",
           contents: {
             parts: [
               { inlineData: { data: base64Data, mimeType: "image/png" } },
@@ -109,7 +109,7 @@ export default async function handler(req: any, res: any) {
         `;
 
          const response = await genAI.models.generateContent({
-           model: 'gemini-1.5-flash',
+           model: 'gemini-3.1-flash-image-preview',
            contents: {
              parts: [
                { inlineData: { data: base64Data, mimeType: "image/png" } },
