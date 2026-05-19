@@ -365,6 +365,9 @@ export default function App() {
 
   return (
     <div className="flex w-full min-h-screen bg-white text-gray-900 font-sans overflow-x-hidden">
+      {/* Hidden Global File Input */}
+      <input type="file" ref={fileInputRef} onChange={handleUpload} className="hidden" accept="image/*" />
+
       {/* Sidebar Overlay (Mobile) */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -414,7 +417,6 @@ export default function App() {
                   <p className="text-[9px] text-gray-300 mt-1">支持 JPG, PNG</p>
                 </div>
               )}
-              <input type="file" ref={fileInputRef} onChange={handleUpload} className="hidden" accept="image/*" />
             </div>
           </div>
 
@@ -491,7 +493,7 @@ export default function App() {
             onClick={() => setIsSidebarOpen(true)}
             className="lg:hidden p-2 text-gray-400 hover:text-black flex-shrink-0"
           >
-            <Upload size={18} />
+            <HistoryIcon size={18} />
           </button>
 
           <button 
@@ -553,6 +555,61 @@ export default function App() {
                 exit={{ opacity: 0, x: 10 }}
                 className="w-full flex flex-col space-y-4 md:space-y-8 max-w-7xl mx-auto pb-10"
               >
+                {/* Central Upload Block when no image */}
+                {!originalImage ? (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full aspect-square md:aspect-[2/1] bg-white rounded-[32px] md:rounded-[48px] border-2 border-dashed border-gray-100 hover:border-black hover:bg-gray-50/20 transition-all flex flex-col items-center justify-center gap-6 cursor-pointer group shadow-[0_8px_30px_rgb(0,0,0,0.02)] mb-4"
+                  >
+                    <div className="w-16 h-16 md:w-24 md:h-24 bg-gray-50 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                      <Upload className="text-black w-8 h-8 md:w-10 md:h-10" />
+                    </div>
+                    <div className="text-center px-8">
+                      <h3 className="text-xl md:text-2xl font-black text-gray-900 uppercase tracking-tighter">第 1 步：上传香水实拍图</h3>
+                      <p className="text-[10px] md:text-sm text-gray-400 font-medium max-w-sm mx-auto mt-3">建议使用纯色背景、光线明亮的产品实拍图<br />AI 将智能分离主体并为您构建 3 个系列化高级渲染场景</p>
+                    </div>
+                    
+                    <div className="mt-4 flex gap-4">
+                      <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                        <CheckCircle2 size={12} className="text-green-500" />
+                        高清分离
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                        <CheckCircle2 size={12} className="text-green-500" />
+                        动态排版
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4 bg-gray-50/50 p-4 rounded-3xl border border-gray-100 mb-2">
+                    <div className="w-14 h-14 bg-white rounded-xl border p-1 border-gray-100 flex-shrink-0">
+                      <img src={originalImage} className="w-full h-full object-contain" alt="Preview" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-xs font-bold text-gray-800">已载入产品图</h4>
+                      <p className="text-[10px] text-gray-400">点击下方风格即可启动全景渲染</p>
+                    </div>
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-bold hover:border-black transition-all"
+                    >
+                      更换原图
+                    </button>
+                  </div>
+                )}
+
+                {/* Error Banner */}
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 text-red-500 text-xs font-bold bg-red-50 p-4 rounded-2xl border border-red-100 mb-4"
+                  >
+                    <AlertCircle size={16} />
+                    {error}
+                  </motion.div>
+                )}
+
                 {/* Visual Style Selection */}
                 <div className="bg-white rounded-[32px] border border-gray-50 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 md:p-8 space-y-6">
                   <div className="flex items-center gap-3">
