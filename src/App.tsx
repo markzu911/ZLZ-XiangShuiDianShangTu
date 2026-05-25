@@ -89,7 +89,7 @@ export default function App() {
         setUser(data.user);
         setTool(data.tool);
         // Load initial gallery
-        const images = await saasService.getImages(uid, data.user.role);
+        const images = await saasService.getImages(uid, tid || toolId, data.user.role);
         setGallery(images);
       } catch (err) {
         console.error("SaaS launch failed:", err);
@@ -206,7 +206,7 @@ export default function App() {
       setCurrentStep(2);
       
       // Refresh gallery
-      const images = await saasService.getImages(userId, user.role);
+      const images = await saasService.getImages(userId, toolId, user.role);
       setGallery(images);
 
       // Auto-save initial state to history (can be updated later)
@@ -832,7 +832,7 @@ export default function App() {
                   <button 
                     onClick={async () => {
                       if (user) {
-                        const images = await saasService.getImages(userId, user.role);
+                        const images = await saasService.getImages(userId, toolId, user.role);
                         setGallery(images);
                       }
                     }}

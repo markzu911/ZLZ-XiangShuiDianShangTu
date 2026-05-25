@@ -111,8 +111,8 @@ export const saasService = {
   },
 
   // 4. Get List
-  getImages: async (userId: string, role: number = 1): Promise<any[]> => {
-    const res = await fetch(`/api/upload/image?userId=${userId}&role=${role}`);
+  getImages: async (userId: string, toolId?: string, role: number = 1): Promise<any[]> => {
+    const res = await fetch(`/api/upload/image?userId=${userId}&role=${role}${toolId ? `&toolId=${toolId}` : ''}`);
     const result = await res.json();
     return result.data || [];
   },

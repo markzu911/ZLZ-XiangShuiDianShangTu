@@ -89,14 +89,25 @@ export default async function handler(req: any, res: any) {
     }
 
     if (path === "/api/upload/commit" && req.method === "POST") {
-      const { userId, objectKey } = req.body;
-      const newImage = { id: `img_${Date.now()}`, url: `https://via.placeholder.com/400?text=Mock+Upload+${objectKey}`, fileName: objectKey, createdAt: Date.now() };
+      const { userId, toolId, objectKey } = req.body;
+      const newImage = { 
+        id: `img_${Date.now()}`, 
+        url: `https://via.placeholder.com/400?text=Mock+Upload+${objectKey}`, 
+        fileName: objectKey, 
+        createdAt: Date.now(),
+        toolId: toolId
+      };
       db.userImages.unshift(newImage);
       return res.status(200).json({ success: true, savedToRecords: true, image: newImage });
     }
 
     if (path === "/api/upload/image" && req.method === "GET") {
-      return res.status(200).json({ success: true, data: db.userImages });
+      const { toolId } = req.query;
+      let filtered = db.userImages;
+      if (toolId) {
+        filtered = filtered.filter(img => img.toolId === toolId);
+      }
+      return res.status(200).json({ success: true, data: filtered });
     }
 
     if (path === "/api/upload/image" && req.method === "DELETE") {

@@ -268,7 +268,8 @@ app.post("/api/upload/commit", (req, res) => {
     id: `img_${Date.now()}`,
     url: tempImage,
     fileName: objectKey.split('/').pop() || 'image.png',
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    toolId: toolId // Record which tool generated this
   };
 
   db.userImages.unshift(newImage);
@@ -281,10 +282,16 @@ app.post("/api/upload/commit", (req, res) => {
 });
 
 app.get("/api/upload/image", (req, res) => {
-  const { userId } = req.query;
+  const { userId, toolId } = req.query;
+  let filtered = db.userImages;
+  
+  if (toolId) {
+    filtered = filtered.filter(img => img.toolId === toolId);
+  }
+  
   res.json({
     success: true,
-    data: db.userImages
+    data: filtered
   });
 });
 
