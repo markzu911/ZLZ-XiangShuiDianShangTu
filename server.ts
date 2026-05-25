@@ -152,8 +152,162 @@ const proxyToSaas = async (req: express.Request, res: express.Response) => {
   }
 };
 
-app.all("/api/tool/*", proxyToSaas);
-app.all("/api/upload/*", proxyToSaas);
+app.post("/api/tool/launch", (req, res) => {
+  const { userId, toolId } = req.body;
+  const user = db.users.find(u => u.id === userId);
+  const tool = db.tools.find(t => t.id === toolId);
+
+  if (!user || !tool) {
+    return res.status(404).json({ success: false, message: "User or tool not found" });
+  }
+
+  res.json({
+    success: true,
+    data: {
+      user,
+      tool
+    }
+  });
+});
+
+app.post("/api/tool/verify", (req, res) => {
+  const { userId, toolId } = req.body;
+  const user = db.users.find(u => u.id === userId);
+  const tool = db.tools.find(t => t.id === toolId);
+
+  if (!user || !tool) {
+    return res.status(404).json({ success: false, message: "User or tool not found" });
+  }
+
+  if (user.integral < tool.integral) {
+    return res.status(200).json({
+      success: false,
+      message: `积分不足，还差 ${tool.integral - user.integral} 积分`
+    });
+  }
+
+  res.json({
+    success: true,
+    data: {
+      currentIntegral: user.integral,
+      requiredIntegral: tool.integral
+    }
+  });
+});
+
+app.post("/api/tool/consume", (req, res) => {
+  const { userId, toolId } = req.body;
+  const user = db.users.find(u => u.id === userId);
+  const tool = db.tools.find(t => t.id === toolId);
+
+  if (!user || !tool) {
+    return res.status(404).json({ success: false, message: "User or tool not found" });
+  }
+
+  if (user.integral < tool.integral) {
+    return res.status(200).json({
+      success: false,
+      message: "积分扣除失败: 积分不足"
+    });
+  }
+
+  user.integral -= tool.integral;
+  
+  // Create short-duration flag for result image upload
+  db.pendingUploads.set(`${userId}_${toolId}`, {
+    timestamp: Date.now(),
+    expiresAt: Date.now() + 5 * 60 * 1000 // 5 mins
+  });
+
+  res.json({
+    success: true,
+    message: "积分扣除成功",
+    data: {
+      currentIntegral: user.integral,
+      consumedIntegral: tool.integral,
+      toolId: toolId
+    }
+  });
+});
+
+app.post("/api/upload/direct-token", (req, res) => {
+  const { userId, toolId, fileName } = req.body;
+  
+  // Verify token
+  const flag = db.pendingUploads.get(`${userId}_${toolId}`);
+  if (!flag || flag.expiresAt < Date.now()) {
+    return res.status(403).json({ success: false, error: "Missing or expired upload token" });
+  }
+
+  // Remove flag (one-time use for simplicity, or keep if multiple uploads?)
+  // Let's keep it until it expires as we might upload multiple images.
+  
+  const objectKey = `uploads/${userId}_${Date.now()}_${fileName}`;
+  
+  res.json({
+    success: true,
+    uploadUrl: `/api/upload/mock-put?key=${encodeURIComponent(objectKey)}`,
+    method: "POST",
+    objectKey: objectKey,
+    headers: {}
+  });
+});
+
+app.post("/api/upload/mock-put", express.raw({ type: () => true, limit: '10mb' }), (req, res) => {
+  // Store the raw body as base64 in our local mock db so we can serve it later
+  const key = req.query.key as string;
+  if (!key) return res.status(400).send("Missing key");
+
+  // Since it's raw binary data, we convert it to base64
+  const base64Data = req.body.toString('base64');
+  let mimeType = req.headers['content-type'] || 'image/png';
+  
+  // Save temp
+  (db as any)[`temp_${key}`] = `data:${mimeType};base64,${base64Data}`;
+
+  res.status(200).send("OK");
+});
+
+app.post("/api/upload/commit", (req, res) => {
+  const { userId, toolId, objectKey } = req.body;
+  
+  const tempImage = (db as any)[`temp_${objectKey}`];
+  if (!tempImage) {
+    return res.status(400).json({ success: false, error: "Image not uploaded" });
+  }
+
+  const newImage = {
+    id: `img_${Date.now()}`,
+    url: tempImage,
+    fileName: objectKey.split('/').pop() || 'image.png',
+    createdAt: Date.now()
+  };
+
+  db.userImages.unshift(newImage);
+
+  res.json({
+    success: true,
+    savedToRecords: true,
+    image: newImage
+  });
+});
+
+app.get("/api/upload/image", (req, res) => {
+  const { userId } = req.query;
+  res.json({
+    success: true,
+    data: db.userImages
+  });
+});
+
+app.delete("/api/upload/image", (req, res) => {
+  const { id } = req.body;
+  db.userImages = db.userImages.filter(img => img.id !== id);
+  res.json({ success: true, message: "Deleted" });
+});
+
+// app.all("/api/tool/*", proxyToSaas);
+// app.all("/api/upload/*", proxyToSaas);
 
 // --- Server Setup ---
 

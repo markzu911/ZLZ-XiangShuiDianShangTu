@@ -195,6 +195,9 @@ export default function App() {
         const res = await fetch(bg);
         const blob = await res.blob();
         await saasService.saveResultImage(userId, toolId, blob, `perfume_${Date.now()}.png`);
+        
+        // Refresh balance info after consumption
+        saasService.launch(userId, toolId).then(data => setUser(data.user)).catch(e => console.error(e));
       } catch (saveErr) {
         console.error("SaaS save failed for image:", saveErr);
       }
@@ -371,14 +374,41 @@ export default function App() {
       <input type="file" ref={fileInputRef} onChange={handleUpload} className="hidden" accept="image/*" />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col bg-white min-h-screen lg:min-h-0 lg:h-screen lg:overflow-hidden">
-        {/* Mobile Header Balance Display */}
-        {user && (
-          <div className="sm:hidden px-4 py-2 bg-orange-50/50 border-b border-orange-100 flex justify-center items-center gap-2">
-            <Sparkles size={12} className="text-orange-500" />
-            <span className="text-[10px] font-bold text-orange-700 uppercase tracking-widest">可用积分: {user.integral}</span>
+      <main className="flex-1 flex flex-col bg-white min-h-screen lg:min-h-0 lg:h-screen lg:overflow-hidden relative">
+        {/* Global Header */}
+        <header className="h-14 md:h-16 border-b border-gray-100 bg-white/80 backdrop-blur-md flex items-center justify-between px-4 md:px-8 shrink-0 z-10 sticky top-0">
+          <div className="flex items-center gap-3">
+             <div className="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center font-black shadow-sm flex-shrink-0">
+               {tool?.name?.[0] || 'A'}
+             </div>
+             <div className="hidden sm:block">
+               <h1 className="text-sm font-bold text-gray-900">{tool?.name || 'AI香水设计'}</h1>
+               <p className="text-[10px] text-gray-400 font-medium">智能生成工具</p>
+             </div>
           </div>
-        )}
+
+          <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100">
+            <button 
+              onClick={() => setActiveTab('workspace')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'workspace' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              创作台
+            </button>
+            <button 
+              onClick={() => setActiveTab('gallery')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'gallery' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              云图库
+            </button>
+          </div>
+
+          {user && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50/80 border border-orange-100 rounded-full flex-shrink-0">
+              <Sparkles size={14} className="text-orange-500" />
+              <span className="text-xs font-bold text-orange-700">积分: {user.integral}</span>
+            </div>
+          )}
+        </header>
 
         {/* Tab Content */}
         <div className="flex-1 p-4 md:p-10 flex flex-col lg:min-h-0 lg:overflow-hidden">
