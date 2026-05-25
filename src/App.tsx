@@ -405,7 +405,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="w-full flex-1 flex flex-col md:flex-row gap-6 max-w-[960px] mx-auto pb-10 md:pb-0 md:min-h-0 md:h-full md:overflow-hidden justify-center"
+                className="w-full flex-1 flex flex-col md:flex-row gap-16 max-w-[1080px] mx-auto pb-10 md:pb-0 md:min-h-0 md:h-full md:overflow-hidden justify-center"
               >
                 {/* Left: Upload Card */}
                 <div className="w-full md:flex-1 flex flex-col shrink-0 md:h-full justify-center">
