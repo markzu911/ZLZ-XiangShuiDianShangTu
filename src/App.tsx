@@ -172,16 +172,28 @@ export default function App() {
   useEffect(() => {
     if (history.length === 0) return;
     try {
-      // Limit history to 6 items to prevent QuotaExceededError (base64 is heavy)
-      const limitedHistory = history.slice(0, 6);
-      localStorage.setItem('perfume_history', JSON.stringify(limitedHistory));
+      // Create a lightweight version for localStorage (only keep metadata or very limited items)
+      // LocalStorage is ~5MB total. One base64 image can be 1-2MB.
+      // We will only save the latest 2 items to be safe, and strip backgroundImages if they are too many.
+      const storageHistory = history.slice(0, 2).map(item => ({
+        ...item,
+        // Keep original if needed, but maybe limit to 1 BG
+        backgroundImages: item.backgroundImages.slice(0, 1)
+      }));
+
+      localStorage.setItem('perfume_history', JSON.stringify(storageHistory));
     } catch (e) {
-      console.warn("LocalStorage quota exceeded, clearing history partially", e);
-      // If still fails, clear even more
+      console.warn("LocalStorage quota exceeded. Only saving metadata for history.", e);
       try {
-        localStorage.setItem('perfume_history', JSON.stringify(history.slice(0, 3)));
+        // Fallback: Save metadata only (no images)
+        const metaOnly = history.slice(0, 10).map(item => ({
+          ...item,
+          originalImage: '',
+          backgroundImages: []
+        }));
+        localStorage.setItem('perfume_history', JSON.stringify(metaOnly));
       } catch (innerE) {
-        console.error("Critical failure saving history to localStorage", innerE);
+        localStorage.removeItem('perfume_history');
       }
     }
   }, [history]);
@@ -653,80 +665,86 @@ export default function App() {
                           </div>
                           <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest tracking-[0.2em] font-mono">RENDERING...</p>
                         </div>
-                      ) : backgroundImages.length > 0 ? (
+                      ) : (backgroundImages.length > 0 || originalImage) ? (
                         <div className="w-full h-full flex items-center justify-center relative p-2 md:p-6 cursor-zoom-in" onClick={() => setIsFullScreen(true)}>
-                          <div 
-                            key={activeHistoryId + '-' + activeBgIndex}
-                            className="relative max-w-full max-h-full flex rounded-[16px] overflow-hidden shadow-sm group"
-                            style={{ aspectRatio: aspectRatio.replace(':', '/') }}
-                          >
-                            <div style={{ containerType: 'size' }} className="relative w-full h-full">
-                              <img 
-                                src={backgroundImages[activeBgIndex]} 
-                                alt="Background" 
-                                className="absolute inset-0 w-full h-full object-cover"
-                              />
-                              
-                              <button 
-                                className="absolute top-4 right-4 z-20 p-2 bg-black/10 hover:bg-black/30 backdrop-blur-md rounded-full text-white transition-all opacity-0 group-hover:opacity-100 pointer-events-auto"
+                          {(() => {
+                            const previewSrc = backgroundImages[activeBgIndex] || originalImage;
+                            return (
+                              <div 
+                                key={activeHistoryId + '-' + activeBgIndex}
+                                className="relative h-full max-w-full rounded-[16px] overflow-hidden shadow-lg group bg-white flex items-center justify-center"
+                                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
                               >
-                                <Maximize2 size={16} />
-                              </button>
-                              
-                              {/* Text Overlay Layer */}
-                              <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
-                                {/* Title - Top Center */}
-                                <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
-                                  <motion.h2 
-                                    layoutId="prev-title"
-                                    className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
+                                <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
+                                  <img 
+                                    src={previewSrc} 
+                                    alt="Preview" 
+                                    className="absolute inset-0 w-full h-full object-contain"
+                                  />
+                                  
+                                  <button 
+                                    className="absolute top-4 right-4 z-20 p-2 bg-black/10 hover:bg-black/30 backdrop-blur-md rounded-full text-white transition-all opacity-0 group-hover:opacity-100 pointer-events-auto"
+                                    onClick={(e) => { e.stopPropagation(); setIsFullScreen(true); }}
                                   >
-                                    {analysis.title}
-                                  </motion.h2>
-                                </div>
+                                    <Maximize2 size={16} />
+                                  </button>
+                                  
+                                  {/* Text Overlay Layer */}
+                                  <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
+                                    {/* Title - Top Center */}
+                                    <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
+                                      <motion.h2 
+                                        layoutId="prev-title"
+                                        className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
+                                      >
+                                        {analysis.title}
+                                      </motion.h2>
+                                    </div>
 
-                                {/* Callout Blocks */}
-                                {/* Left */}
-                                <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
-                                  {analysis.sellingPoints.length >= 1 && (
-                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
-                                      <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
-                                      <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                    </motion.div>
-                                  )}
-                                </div>
-                                
-                                {/* Right */}
-                                <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
-                                  {analysis.sellingPoints.length === 2 && (
-                                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
-                                      <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                      <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                    </motion.div>
-                                  )}
-                                  {analysis.sellingPoints.length === 3 && (
-                                    <>
-                                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi]">
-                                        <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                        <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                      </motion.div>
-                                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi]">
-                                        <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                        <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
-                                      </motion.div>
-                                    </>
-                                  )}
-                                </div>
+                                    {/* Callout Blocks */}
+                                    {/* Left */}
+                                    <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
+                                      {analysis.sellingPoints.length >= 1 && (
+                                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
+                                          <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
+                                          <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                        </motion.div>
+                                      )}
+                                    </div>
+                                    
+                                    {/* Right */}
+                                    <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
+                                      {analysis.sellingPoints.length === 2 && (
+                                        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
+                                          <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                          <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
+                                        </motion.div>
+                                      )}
+                                      {analysis.sellingPoints.length === 3 && (
+                                        <>
+                                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi]">
+                                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                            <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
+                                          </motion.div>
+                                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi]">
+                                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                            <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
+                                          </motion.div>
+                                        </>
+                                      )}
+                                    </div>
 
-                                {/* Bottom Info */}
-                                <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
-                                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight">
-                                    {analysis.bottomInfo}
-                                  </motion.p>
+                                    {/* Bottom Info */}
+                                    <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
+                                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight">
+                                        {analysis.bottomInfo}
+                                      </motion.p>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </div>
+                            );
+                          })()}
                         </div>
                       ) : (
                         <div className="text-center opacity-[0.03]">
