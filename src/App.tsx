@@ -387,21 +387,6 @@ export default function App() {
              </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl border border-gray-100">
-            <button 
-              onClick={() => setActiveTab('workspace')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'workspace' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
-            >
-              创作台
-            </button>
-            <button 
-              onClick={() => setActiveTab('gallery')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'gallery' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
-            >
-              云图库
-            </button>
-          </div>
-
           {user && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50/80 border border-orange-100 rounded-full flex-shrink-0">
               <Sparkles size={14} className="text-orange-500" />
