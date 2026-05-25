@@ -13,7 +13,8 @@ import {
   Maximize2,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react';
 
 import { analyzeProductImage, generateEcommerceImage, AnalysisResult } from './services/geminiService';
@@ -56,8 +57,8 @@ export default function App() {
   const [toolId, setToolId] = useState<string>('tool_perfume'); // Default for demo
 
   // State
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [activeTab, setActiveTab] = useState<'workspace' | 'gallery'>('workspace');
-  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult>({ 
     title: '', 
@@ -148,6 +149,7 @@ export default function App() {
         });
         setBackgroundImages([]);
         setActiveBgIndex(0);
+        setCurrentStep(1);
         setActiveTab('workspace');
         setActiveHistoryId(null);
       };
@@ -198,6 +200,7 @@ export default function App() {
       }
 
       setBackgroundImages(bgImages);
+      setCurrentStep(2);
       
       // Refresh gallery
       const images = await saasService.getImages(userId, user.role);
@@ -381,21 +384,20 @@ export default function App() {
         <div className="flex-1 p-4 md:p-10 flex flex-col lg:min-h-0 lg:overflow-hidden">
           <AnimatePresence mode="wait">
             {activeTab === 'workspace' ? (
+              currentStep === 1 ? (
               <motion.div 
-                key="workspace-content"
+                key="step-1"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="w-full flex-1 flex flex-col lg:flex-row gap-6 max-w-[1800px] mx-auto pb-10 lg:pb-0 lg:min-h-0 lg:h-full lg:overflow-hidden"
+                className="w-full flex-1 flex flex-col md:flex-row gap-6 max-w-[960px] mx-auto pb-10 md:pb-0 md:min-h-0 md:h-full md:overflow-hidden justify-center"
               >
-                {/* 1. Left: Upload & AI Config */}
-                <div className={`relative flex flex-shrink-0 lg:h-full lg:overflow-y-auto no-scrollbar transition-all duration-500 ease-in-out ${isLeftPanelOpen ? 'w-full lg:w-[320px] xl:w-[380px]' : 'w-0 hidden lg:flex'}`}>
-                  <div className={`w-full lg:w-[320px] xl:w-[380px] flex flex-col gap-6 flex-shrink-0 lg:pb-10 transition-opacity duration-300 ${isLeftPanelOpen ? 'opacity-100' : 'opacity-0 pointer-events-none overflow-hidden'}`}>
-                  {/* Upload Card */}
+                {/* Left: Upload Card */}
+                <div className="w-full md:flex-1 flex flex-col shrink-0 md:h-full justify-center">
                   {!originalImage ? (
                     <div 
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full aspect-[4/3] bg-white rounded-[24px] border-2 border-dashed border-gray-200 hover:border-black hover:bg-gray-50/50 transition-all flex flex-col items-center justify-center gap-4 cursor-pointer group shadow-sm bg-gray-50/20"
+                      className="w-full aspect-[4/3] md:aspect-auto md:h-[60%] md:max-h-[600px] bg-white rounded-[24px] border-2 border-dashed border-gray-200 hover:border-black hover:bg-gray-50/50 transition-all flex flex-col items-center justify-center gap-4 cursor-pointer group shadow-sm bg-gray-50/20"
                     >
                       <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-500">
                         <Upload className="text-black w-6 h-6" />
@@ -406,20 +408,20 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-3 bg-white p-3 rounded-[20px] border border-gray-100 shadow-sm">
-                      <div className="w-12 h-12 bg-gray-50 rounded-xl border p-1 border-gray-100 flex-shrink-0">
+                    <div className="flex flex-col items-center justify-center gap-6 bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm w-full md:h-[60%] md:max-h-[600px]">
+                      <div className="w-full h-full max-h-[300px] bg-gray-50 rounded-xl border p-2 border-gray-100 flex-shrink-0 flex items-center justify-center">
                         <img src={originalImage} className="w-full h-full object-contain" alt="Preview" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-[11px] font-bold text-gray-800 truncate">已载入产品图</h4>
-                        <p className="text-[9px] text-gray-400 truncate">完成设置后可生成</p>
+                      <div className="flex flex-col items-center gap-1 w-full">
+                        <h4 className="text-sm font-bold text-gray-800 text-center">已载入产品图</h4>
+                        <p className="text-xs text-gray-400 text-center mb-2">完成右侧设置后可生成</p>
+                        <button 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-6 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold hover:border-black hover:bg-white transition-all w-full max-w-[200px]"
+                        >
+                          更换图片
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-[10px] font-bold hover:border-black hover:bg-white transition-all flex-shrink-0"
-                      >
-                        更换
-                      </button>
                     </div>
                   )}
 
@@ -427,47 +429,49 @@ export default function App() {
                     <motion.div 
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-2 text-red-500 text-[10px] font-bold bg-red-50 p-3 rounded-xl border border-red-100"
+                      className="mt-4 flex items-center justify-center gap-2 text-red-500 text-[10px] font-bold bg-red-50 p-3 rounded-xl border border-red-100 md:max-w-[600px] mx-auto w-full"
                     >
                       <AlertCircle size={14} />
                       {error}
                     </motion.div>
                   )}
+                </div>
 
-                  {/* AI Style & Output */}
-                  <div className="bg-white rounded-[24px] border border-gray-50 shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-5 space-y-6">
+                {/* Right: AI Style & Output */}
+                <div className="w-full md:w-[380px] xl:w-[420px] flex flex-col gap-6 flex-shrink-0 md:h-full md:overflow-y-auto no-scrollbar md:py-6">
+                  <div className="bg-white rounded-[24px] border border-gray-50 shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-6 space-y-6">
                     <div className="space-y-3">
                       <div className="flex items-center flex-row gap-2">
-                         <Sparkles className="text-indigo-500 w-3.5 h-3.5" />
-                         <span className="text-[11px] font-bold text-gray-800">画面风格选择</span>
+                         <Sparkles className="text-indigo-500 w-4 h-4" />
+                         <span className="text-xs font-bold text-gray-800">画面风格选择</span>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-3">
                         {STYLES.map(s => (
                           <button 
                             key={s.id}
                             onClick={() => setStyle(s.id)}
-                            className={`px-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-1.5 ${
+                            className={`px-3 py-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
                               style === s.id 
                                 ? 'bg-black text-white border-black shadow-md' 
                                 : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-gray-800 hover:text-black'
                             }`}
                           >
-                            <ImageIcon size={14} className={style === s.id ? 'opacity-80' : 'opacity-40'} />
-                            <span className="text-[10px] font-bold">{s.name}</span>
+                            <ImageIcon size={18} className={style === s.id ? 'opacity-80' : 'opacity-40'} />
+                            <span className="text-[11px] font-bold">{s.name}</span>
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    <div className="space-y-4 pt-1">
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">拍摄视角</label>
-                        <div className="flex flex-wrap gap-1.5">
+                    <div className="space-y-5 pt-2">
+                      <div className="space-y-2.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">拍摄视角</label>
+                        <div className="flex flex-wrap gap-2">
                           {PERSPECTIVES.map(p => (
                             <button 
                               key={p.id}
                               onClick={() => setPerspective(p.id)}
-                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                              className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
                                 perspective === p.id ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50 hover:border-gray-300'
                               }`}
                             >
@@ -476,14 +480,14 @@ export default function App() {
                           ))}
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">画幅比例</label>
-                        <div className="flex flex-wrap gap-1.5">
+                      <div className="space-y-2.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">画幅比例</label>
+                        <div className="flex flex-wrap gap-2">
                           {RATIOS.map(r => (
                             <button 
                               key={r}
                               onClick={() => setAspectRatio(r)}
-                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                              className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
                                 aspectRatio === r ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50 hover:border-gray-300'
                               }`}
                             >
@@ -492,14 +496,14 @@ export default function App() {
                           ))}
                         </div>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block">输出分辨率</label>
-                        <div className="flex flex-wrap gap-1.5">
+                      <div className="space-y-2.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">输出分辨率</label>
+                        <div className="flex flex-wrap gap-2">
                           {QUALITIES.map(q => (
                             <button 
                               key={q}
                               onClick={() => setQuality(q)}
-                              className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
+                              className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
                                 quality === q ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50 hover:border-gray-300'
                               }`}
                             >
@@ -510,30 +514,206 @@ export default function App() {
                       </div>
                     </div>
 
-                    <button 
-                      disabled={!originalImage || isGenerating}
-                      onClick={handleGenerate}
-                      className="w-full h-11 bg-black text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] shadow-lg disabled:opacity-30 mt-2"
-                    >
-                      {isGenerating ? <Loader2 className="animate-spin w-4 h-4" /> : <Sparkles size={14} />}
-                      {isGenerating ? 'AI 构建中...' : '生成商品图'}
-                    </button>
-                  </div>
+                    <div className="pt-2">
+                      <button 
+                        disabled={!originalImage || isGenerating}
+                        onClick={handleGenerate}
+                        className="w-full h-12 bg-black text-white rounded-xl font-bold text-[13px] transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] shadow-lg disabled:opacity-30"
+                      >
+                        {isGenerating ? <Loader2 className="animate-spin w-4 h-4" /> : <Sparkles size={16} />}
+                        {isGenerating ? 'AI 构建中...' : '生成商品图'}
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </motion.div>
+              ) : (
+              <motion.div 
+                key="step-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="w-full flex-1 flex flex-col md:flex-row gap-6 max-w-[1200px] mx-auto pb-10 md:pb-0 md:min-h-0 md:h-full md:overflow-hidden justify-center"
+              >
+                {/* Left Column: Preview & History */}
+                <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-4 md:h-full overflow-hidden">
+                  {/* Huge Preview Container */}
+                  <div className="flex-1 min-w-0 min-h-0 bg-white rounded-[24px] border border-gray-50 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col overflow-hidden relative">
+                    <div className="h-10 border-b border-gray-50 bg-white flex items-center justify-between px-5 bg-gradient-to-r from-gray-50/50 to-white">
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                        渲染预览
+                      </span>
+                      {backgroundImages.length > 1 && (
+                        <div className="flex items-center gap-1.5">
+                          {backgroundImages.map((_, i) => (
+                             <button 
+                               key={i}
+                               onClick={() => setActiveBgIndex(i)}
+                               className={`w-2 h-2 rounded-full transition-all ${activeBgIndex === i ? 'bg-black w-4' : 'bg-gray-200'}`}
+                             />
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                {/* Toggle Button for Left Panel */}
-                <div className="hidden lg:flex flex-col justify-center -ml-3 mr-1 z-10 transition-transform">
+                    <div className="flex-1 w-full bg-gray-50 relative overflow-hidden flex items-center justify-center p-2 outline-none">
+                      {isGenerating ? (
+                        <div className="text-center space-y-4">
+                          <div className="w-10 h-10 relative mx-auto">
+                            <div className="absolute inset-0 border-2 border-gray-200 rounded-full" />
+                            <motion.div 
+                              className="absolute inset-0 border-2 border-black rounded-full border-t-transparent"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                          </div>
+                          <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest tracking-[0.2em] font-mono">RENDERING...</p>
+                        </div>
+                      ) : backgroundImages.length > 0 ? (
+                        <div className="w-full h-full flex items-center justify-center relative p-2 md:p-6 cursor-zoom-in" onClick={() => setIsFullScreen(true)}>
+                          <div 
+                            key={activeHistoryId + '-' + activeBgIndex}
+                            className="relative max-w-full max-h-full flex rounded-[16px] overflow-hidden shadow-sm group"
+                            style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+                          >
+                            <div style={{ containerType: 'size' }} className="relative w-full h-full">
+                              <img 
+                                src={backgroundImages[activeBgIndex]} 
+                                alt="Background" 
+                                className="absolute inset-0 w-full h-full object-cover"
+                              />
+                              
+                              <button 
+                                className="absolute top-4 right-4 z-20 p-2 bg-black/10 hover:bg-black/30 backdrop-blur-md rounded-full text-white transition-all opacity-0 group-hover:opacity-100 pointer-events-auto"
+                              >
+                                <Maximize2 size={16} />
+                              </button>
+                              
+                              {/* Text Overlay Layer */}
+                              <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
+                                {/* Title - Top Center */}
+                                <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
+                                  <motion.h2 
+                                    layoutId="prev-title"
+                                    className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
+                                  >
+                                    {analysis.title}
+                                  </motion.h2>
+                                </div>
+
+                                {/* Callout Blocks */}
+                                {/* Left */}
+                                <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
+                                  {analysis.sellingPoints.length >= 1 && (
+                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
+                                      <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
+                                      <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                    </motion.div>
+                                  )}
+                                </div>
+                                
+                                {/* Right */}
+                                <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
+                                  {analysis.sellingPoints.length === 2 && (
+                                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
+                                      <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                      <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
+                                    </motion.div>
+                                  )}
+                                  {analysis.sellingPoints.length === 3 && (
+                                    <>
+                                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi]">
+                                        <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                        <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
+                                      </motion.div>
+                                      <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi]">
+                                        <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                        <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
+                                      </motion.div>
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Bottom Info */}
+                                <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
+                                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight">
+                                    {analysis.bottomInfo}
+                                  </motion.p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center opacity-[0.03]">
+                          <ImageIcon size={100} className="mx-auto" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* History List below Preview */}
+                  {history.length > 0 && (
+                    <div className="h-28 md:h-32 bg-white rounded-[24px] border border-gray-50 flex-shrink-0 shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-4 flex flex-col">
+                      <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 shrink-0 flex items-center justify-between">
+                        历史记录
+                      </h4>
+                      <div className="flex-1 flex gap-3 overflow-x-auto no-scrollbar items-center">
+                        {history.map((record) => {
+                           const coverImage = record.backgroundImages?.[0] || record.originalImage;
+                           const isSelected = activeHistoryId === record.id;
+                           return (
+                             <div 
+                               key={record.id}
+                               className={`h-full aspect-square rounded-xl overflow-hidden relative cursor-pointer flex-shrink-0 border-2 transition-all ${isSelected ? 'border-black' : 'border-gray-100 hover:border-gray-400'}`}
+                               onClick={() => {
+                                 setActiveHistoryId(record.id);
+                                 setOriginalImage(record.originalImage);
+                                 setBackgroundImages(record.backgroundImages);
+                                 setAnalysis({
+                                   title: record.title,
+                                   sellingPoints: record.sellingPoints,
+                                   bottomInfo: record.bottomInfo,
+                                   textColor: record.textColor || '#1f2937'
+                                 });
+                               }}
+                             >
+                               <img src={coverImage} className="w-full h-full object-cover" />
+                               <button 
+                                 className="absolute top-1 right-1 z-20 p-1 bg-black/20 hover:bg-black/60 backdrop-blur-sm rounded-full text-white opacity-0 hover:opacity-100 flex items-center justify-center transition-all"
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   setActiveHistoryId(record.id);
+                                   setOriginalImage(record.originalImage);
+                                   setBackgroundImages(record.backgroundImages);
+                                   setAnalysis({
+                                     title: record.title,
+                                     sellingPoints: record.sellingPoints,
+                                     bottomInfo: record.bottomInfo,
+                                     textColor: record.textColor || '#1f2937'
+                                   });
+                                   setIsFullScreen(true);
+                                 }}
+                               >
+                                 <Maximize2 size={12} />
+                               </button>
+                             </div>
+                           )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Text & Layout Config */}
+                <div className="w-full md:w-[280px] xl:w-[320px] flex flex-col gap-4 flex-shrink-0 md:h-full md:overflow-y-auto no-scrollbar md:pb-10">
                   <button 
-                    onClick={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
-                    className="w-5 h-16 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center justify-center text-gray-400 hover:text-black hover:bg-gray-50 transition-colors"
+                    onClick={() => setCurrentStep(1)} 
+                    className="flex items-center gap-2 text-gray-500 hover:text-black hover:bg-gray-50 self-start px-2 py-1 rounded-lg transition-colors text-xs font-bold"
                   >
-                    {isLeftPanelOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                    <ArrowLeft size={14} />
+                    返回修改配置
                   </button>
-                </div>
-
-                {/* 2. Middle: Text & Layout Config */}
-                <div className="w-full lg:w-[280px] xl:w-[320px] flex flex-col gap-4 flex-shrink-0 lg:h-full lg:overflow-y-auto no-scrollbar lg:pb-10">
                   <div className="bg-white rounded-[24px] border border-gray-50 p-5 space-y-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] opacity-100 transition-opacity">
                     <h3 className="text-[11px] font-bold text-gray-800 flex items-center gap-2 mb-2">
                        当前选用: {PERSPECTIVES.find(p => p.id === perspective)?.name || '-'}
@@ -619,122 +799,8 @@ export default function App() {
                     下载含排版成图
                   </button>
                 </div>
-
-                {/* 3. Right: Huge Preview Container */}
-                <div className="flex-1 min-w-0 min-h-0 bg-white rounded-[24px] border border-gray-50 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col overflow-hidden relative lg:h-full">
-                  <div className="h-10 border-b border-gray-50 bg-white flex items-center justify-between px-5 bg-gradient-to-r from-gray-50/50 to-white">
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                      渲染预览
-                    </span>
-                    {backgroundImages.length > 1 && (
-                      <div className="flex items-center gap-1.5">
-                        {backgroundImages.map((_, i) => (
-                           <button 
-                             key={i}
-                             onClick={() => setActiveBgIndex(i)}
-                             className={`w-2 h-2 rounded-full transition-all ${activeBgIndex === i ? 'bg-black w-4' : 'bg-gray-200'}`}
-                           />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 w-full bg-gray-50 relative overflow-hidden flex items-center justify-center p-2 outline-none">
-                    {isGenerating ? (
-                      <div className="text-center space-y-4">
-                        <div className="w-10 h-10 relative mx-auto">
-                          <div className="absolute inset-0 border-2 border-gray-200 rounded-full" />
-                          <motion.div 
-                            className="absolute inset-0 border-2 border-black rounded-full border-t-transparent"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          />
-                        </div>
-                        <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest tracking-[0.2em] font-mono">RENDERING...</p>
-                      </div>
-                    ) : backgroundImages.length > 0 ? (
-                      <div className="w-full h-full flex items-center justify-center relative p-2 md:p-6" onClick={() => setIsFullScreen(true)}>
-                        <div 
-                          key={activeHistoryId + '-' + activeBgIndex}
-                          className="relative max-w-full max-h-full flex rounded-[16px] overflow-hidden shadow-sm cursor-zoom-in group"
-                          style={{ aspectRatio: aspectRatio.replace(':', '/') }}
-                        >
-                          <div style={{ containerType: 'size' }} className="relative w-full h-full">
-                            <img 
-                              src={backgroundImages[activeBgIndex]} 
-                              alt="Background" 
-                              className="absolute inset-0 w-full h-full object-cover"
-                            />
-                            
-                            <button 
-                              className="absolute top-4 right-4 z-20 p-2 bg-black/10 hover:bg-black/30 backdrop-blur-md rounded-full text-white transition-all opacity-0 group-hover:opacity-100 pointer-events-auto"
-                            >
-                              <Maximize2 size={16} />
-                            </button>
-                            
-                            {/* Text Overlay Layer */}
-                            <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
-                              {/* Title - Top Center */}
-                              <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
-                                <motion.h2 
-                                  layoutId="prev-title"
-                                  className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
-                                >
-                                  {analysis.title}
-                                </motion.h2>
-                              </div>
-
-                              {/* Callout Blocks */}
-                              {/* Left */}
-                              <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
-                                {analysis.sellingPoints.length >= 1 && (
-                                  <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
-                                    <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
-                                    <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                  </motion.div>
-                                )}
-                              </div>
-                              
-                              {/* Right */}
-                              <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
-                                {analysis.sellingPoints.length === 2 && (
-                                  <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
-                                    <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                    <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                  </motion.div>
-                                )}
-                                {analysis.sellingPoints.length === 3 && (
-                                  <>
-                                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi]">
-                                      <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                      <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                    </motion.div>
-                                    <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi]">
-                                      <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                      <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
-                                    </motion.div>
-                                  </>
-                                )}
-                              </div>
-
-                              {/* Bottom Info */}
-                              <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
-                                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight">
-                                  {analysis.bottomInfo}
-                                </motion.p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center opacity-[0.03]">
-                        <ImageIcon size={100} className="mx-auto" />
-                      </div>
-                    )}
-                  </div>
-                </div>
               </motion.div>
+              )
             ) : activeTab === 'gallery' ? (
               <motion.div 
                 key="gallery-content"
