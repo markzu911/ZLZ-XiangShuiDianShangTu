@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import cors from "cors";
 
@@ -17,16 +16,6 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Gemini Setup
-const genAI = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || "",
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    }
-  }
-});
 
 // Mock Database (In-memory for demo, should be Firestore/DB in prod)
 const db = {
@@ -49,119 +38,46 @@ app.get("/api/health", (req, res) => {
 
 // --- Gemini API Routes ---
 
+// --- Gemini API Proxy Route (Unified) ---
 app.get("/api/gemini/models", async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: "GEMINI_API_KEY missing" });
-  }
+  if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY missing" });
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-    const geminiRes = await fetch(url);
-    const data = await geminiRes.json();
-    res.status(geminiRes.status).json(data);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    const response = await fetch(url);
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 app.post("/api/gemini", async (req, res) => {
   const { payload } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    return res.status(500).json({ error: "GEMINI_API_KEY missing in server .env" });
-  }
+  if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY missing" });
 
   try {
     const forcedModel = process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
     const modelName = forcedModel.startsWith('models/') ? forcedModel : `models/${forcedModel}`;
     const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
 
-    const geminiRes = await fetch(url, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
-    const data = await geminiRes.json();
-    res.status(geminiRes.status).json(data);
-  } catch (error: any) {
-    console.error("Local Gemini Proxy Error:", error);
-    res.status(500).json({ error: error.message });
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.post("/api/ai/analyze", async (req, res) => {
-  try {
-    const { image } = req.body;
-    if (!image) return res.status(400).json({ error: "Image required" });
-
-    const base64Data = image.split(",")[1] || image;
-
-    const prompt = `
-      Analyze this perfume bottle image and provide:
-      1. A short, attractive title (in Chinese).
-      2. 1-3 key selling points (in Chinese).
-      3. A short bottom info line (in Chinese).
-      4. A suitable dark/luxury text color (Hex code, like #1A1A1A or #2C2420).
-      Return strictly as JSON: { "title": "...", "sellingPoints": ["...", "..."], "bottomInfo": "...", "textColor": "..." }
-    `;
-
-    const response = await genAI.getGenerativeModel({ model: "gemini-1.5-flash" }).generateContent([
-      { inlineData: { data: base64Data, mimeType: "image/png" } },
-      { text: prompt }
-    ]);
-
-    const responseText = response.response.text();
-    const jsonMatch = responseText?.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Invalid AI response: " + responseText);
-    
-    res.json(JSON.parse(jsonMatch[0]));
-  } catch (error: any) {
-    console.error("AI Analysis error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/ai/generate", async (req, res) => {
-  try {
-    const { image, stylePrompt, aspectRatio, quality, perspectivePrompt } = req.body;
-    if (!image) return res.status(400).json({ error: "Image required" });
-
-    const base64Data = image.split(",")[1] || image;
-
-    const finalPrompt = `
-      Create a high-end commercial product photography background for the product in the provided image.
-      - Product: Maintain EXACT shape/material of the reference bottle.
-      - Perspective: ${perspectivePrompt}.
-      - Style: ${stylePrompt}.
-      - Background: Consistent studio setup, high-end bokeh, luxurious lighting.
-      - REPEAT: Absolute focus on the product. No extra digital text or graphics.
-      - Quality: Professional catalog photography.
-    `;
-
-    const response = await genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }).generateContent([
-      { inlineData: { data: base64Data, mimeType: "image/png" } },
-      { text: finalPrompt }
-    ]);
-
-    // Note: If using a real image generation model, call it here. 
-    // Gemini 1.5 Flash doesn't generate images directly, but for this demo 
-    // we use a placeholder or the user's expected flow.
-    // Assuming the user has a specific image gen tool or wants me to mock it.
-    // In this app, we were previously using 'gemini-3.1-flash-image-preview'.
-    // I will stick to that or use a mock if not available.
-    
-    // For now, let's keep the existing logic but make it more robust.
-    res.json({ 
-      success: true, 
-      image: image // Returning same image as placeholder if gen fails, you should use a real gen model here
-    });
-  } catch (error: any) {
-    console.error("AI Generation error:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
+// Remove old unused routes
+// app.post("/api/ai/analyze", ...) -> Cleaned up
+// app.post("/api/ai/generate", ...) -> Cleaned up
 
 // --- SaaS Integration APIs ---
 

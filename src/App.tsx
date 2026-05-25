@@ -73,6 +73,7 @@ export default function App() {
   const [perspective, setPerspective] = useState(PERSPECTIVES[0].id);
   const [quality, setQuality] = useState('1K');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isFallbackMode, setIsFallbackMode] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -217,6 +218,7 @@ export default function App() {
   const handleGenerate = async () => {
     if (!originalImage || !user || !tool) return;
     setIsGenerating(true);
+    setIsFallbackMode(false);
     setError(null);
     setActiveBgIndex(0);
     setActiveHistoryId(null);
@@ -242,6 +244,10 @@ export default function App() {
         quality,
         selectedP.prompt
       );
+      
+      if (bg === originalImage) {
+        setIsFallbackMode(true);
+      }
       
       const bgImages = [bg];
       
@@ -611,9 +617,16 @@ export default function App() {
                   {/* Huge Preview Container */}
                   <div className="flex-1 min-w-0 min-h-0 bg-white rounded-[24px] border border-gray-50 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col overflow-hidden relative">
                     <div className="h-10 border-b border-gray-50 bg-white flex items-center justify-between px-5 bg-gradient-to-r from-gray-50/50 to-white">
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                        渲染预览
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                          渲染预览
+                        </span>
+                        {isFallbackMode && (
+                          <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                            ✨ 已生成方案 (当前为原图预览)
+                          </span>
+                        )}
+                      </div>
                       {backgroundImages.length > 1 && (
                         <div className="flex items-center gap-1.5">
                           {backgroundImages.map((_, i) => (
