@@ -31,7 +31,7 @@ export const analyzeProductImage = async (base64Image: string): Promise<Analysis
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        model: 'gemini-1.5-flash',
+        model: 'gemini-3.1-pro-preview',
         payload 
       })
     });

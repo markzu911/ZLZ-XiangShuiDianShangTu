@@ -21,19 +21,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // A. Gemini API Proxy
     if (path.startsWith('/api/gemini')) {
-      if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method Not Allowed' });
-      }
-
-      const { model, payload } = req.body;
       const apiKey = process.env.GEMINI_API_KEY;
 
       if (!apiKey) {
         return res.status(500).json({ error: 'GEMINI_API_KEY not configured on server' });
       }
 
-      // Clean model name
-      const modelName = model.startsWith('models/') ? model : `models/${model}`;
+      // GET /api/gemini/models
+      if (path === '/api/gemini/models') {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const geminiRes = await fetch(url);
+        const data = await geminiRes.json();
+        return res.status(geminiRes.status).json(data);
+      }
+
+      if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+      }
+
+      // const { model, payload } = req.body; // Ignore frontend model if we want to force it
+      const { payload } = req.body;
+      
+      // Force model name from ENV or default to 3.1 Pro Preview
+      const forcedModel = process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
+      const modelName = forcedModel.startsWith('models/') ? forcedModel : `models/${forcedModel}`;
+      
       const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
 
       const geminiRes = await fetch(url, {

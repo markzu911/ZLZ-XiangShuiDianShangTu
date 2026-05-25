@@ -49,8 +49,23 @@ app.get("/api/health", (req, res) => {
 
 // --- Gemini API Routes ---
 
+app.get("/api/gemini/models", async (req, res) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({ error: "GEMINI_API_KEY missing" });
+  }
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const geminiRes = await fetch(url);
+    const data = await geminiRes.json();
+    res.status(geminiRes.status).json(data);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/api/gemini", async (req, res) => {
-  const { model, payload } = req.body;
+  const { payload } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
@@ -58,7 +73,8 @@ app.post("/api/gemini", async (req, res) => {
   }
 
   try {
-    const modelName = model.startsWith('models/') ? model : `models/${model}`;
+    const forcedModel = process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
+    const modelName = forcedModel.startsWith('models/') ? forcedModel : `models/${forcedModel}`;
     const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
 
     const geminiRes = await fetch(url, {
