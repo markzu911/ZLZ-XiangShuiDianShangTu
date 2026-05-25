@@ -39,12 +39,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method Not Allowed' });
       }
 
-      // const { model, payload } = req.body; // Ignore frontend model if we want to force it
-      const { payload } = req.body;
+      const { model, payload } = req.body;
       
-      // Force model name from ENV or default to 3.1 Pro Preview
-      const forcedModel = process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
-      const modelName = forcedModel.startsWith('models/') ? forcedModel : `models/${forcedModel}`;
+      // Allow override via env for mapping, but prioritize req.body if it matches a valid pattern
+      let targetModel = model || 'gemini-3.1-pro-preview';
+      
+      // Support for GEMINI_TEXT_MODEL and GEMINI_IMAGE_MODEL overrides
+      if (targetModel === 'gemini-3.1-pro-preview' && process.env.GEMINI_TEXT_MODEL) {
+        targetModel = process.env.GEMINI_TEXT_MODEL;
+      } else if (targetModel === 'gemini-3-pro-image-preview' && process.env.GEMINI_IMAGE_MODEL) {
+        targetModel = process.env.GEMINI_IMAGE_MODEL;
+      }
+      
+      const modelName = targetModel.startsWith('models/') ? targetModel : `models/${targetModel}`;
       
       const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
 

@@ -52,7 +52,7 @@ export const analyzeProductImage = async (base64Image: string): Promise<Analysis
     return {
       title: parsed.title || "Untitled Fragrance",
       sellingPoints: Array.isArray(parsed.sellingPoints) ? parsed.sellingPoints : ["Elegant Design", "Pure Essence"],
-      bottomInfo: parsed.bottomInfo || "Exquisite Experience",
+      bottomInfo: parsed.bottomInfo || "探索感官新境界",
       textColor: parsed.textColor || "#1A1A1A"
     };
 
@@ -80,15 +80,16 @@ export const generateEcommerceImage = async (
   const base64Data = base64Image.includes('base64,') ? base64Image.split('base64,')[1] : base64Image;
   
   const finalPrompt = `
-    Based on the provided perfume bottle image, generate a high-quality professional e-commerce marketing image.
-    Product Title: ${title}
+    Generate a high-end, professional commercial product photography image for the perfume in the provided photo.
+    Product: ${title}
+    Description: ${description}
     Style: ${style}
     Perspective: ${perspective}
     Aspect Ratio: ${aspectRatio}
     Quality: ${quality}
-    
-    If your model supports direct image generation output (inlineData), please provide the generated image.
-    Otherwise, describe the ideal composition and lighting for this scene.
+
+    The core requirement is to place this bottle in a stunning environment. 
+    Return the generated image as binary data (inlineData).
   `;
 
   const payload = {
@@ -105,7 +106,7 @@ export const generateEcommerceImage = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-3-pro-image-preview',
         payload 
       })
     });
@@ -117,20 +118,17 @@ export const generateEcommerceImage = async (
 
     const data = await res.json();
     
-    // Attempt to extract binary image data if present
-    const contents = data.candidates?.[0]?.content?.parts || [];
-    for (const part of contents) {
-      if (part.inlineData) {
-        return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-      }
+    // Extract inlineData image from Gemini output
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    const imagePart = parts.find((p: any) => p.inlineData?.data || p.inline_data?.data);
+    
+    if (imagePart) {
+      const imageData = imagePart.inlineData?.data || imagePart.inline_data?.data;
+      const mimeType = imagePart.inlineData?.mimeType || imagePart.inline_data?.mime_type || 'image/png';
+      return `data:${mimeType};base64,${imageData}`;
     }
 
-    // If no image data returned by Gemini 3.1 Pro Preview (likely as it is primarily a multimodal understanding model)
-    console.warn("Gemini 3.1 Pro Preview returned text only, no image data.");
-    
-    // We notify the UI by throwing a specific identifiable message or just returning original
-    // For this context, we return the original image as a fallback but we could throw to trigger the UI warning.
-    // Let's return the original so the UI can continue, but log for the developer.
+    console.warn("gemini-3-pro-image-preview did not return image data, falling back to original");
     return base64Image;
 
   } catch (error: any) {

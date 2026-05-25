@@ -53,13 +53,19 @@ app.get("/api/gemini/models", async (req, res) => {
 });
 
 app.post("/api/gemini", async (req, res) => {
-  const { payload } = req.body;
+  const { model, payload } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY missing" });
 
   try {
-    const forcedModel = process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
-    const modelName = forcedModel.startsWith('models/') ? forcedModel : `models/${forcedModel}`;
+    let targetModel = model || 'gemini-3.1-pro-preview';
+    if (targetModel === 'gemini-3.1-pro-preview' && process.env.GEMINI_TEXT_MODEL) {
+      targetModel = process.env.GEMINI_TEXT_MODEL;
+    } else if (targetModel === 'gemini-3-pro-image-preview' && process.env.GEMINI_IMAGE_MODEL) {
+      targetModel = process.env.GEMINI_IMAGE_MODEL;
+    }
+
+    const modelName = targetModel.startsWith('models/') ? targetModel : `models/${targetModel}`;
     const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
