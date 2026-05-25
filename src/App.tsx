@@ -981,32 +981,30 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center overflow-hidden p-10"
+            className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center overflow-hidden p-4 md:p-8"
             onClick={() => setIsFullScreen(false)}
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full h-full flex items-center justify-center bg-black/50 md:rounded-3xl overflow-hidden"
+              className="relative w-full h-full flex items-center justify-center md:rounded-3xl overflow-visible"
               onClick={e => e.stopPropagation()}
             >
-              <button 
-                onClick={() => setIsFullScreen(false)}
-                className="absolute top-4 right-4 z-20 p-2 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full text-white transition-all"
-              >
-                <X size={24} />
-              </button>
-              <div 
-                className="relative max-w-full max-h-full flex shadow-2xl overflow-hidden"
-                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
-              >
-                <div style={{ containerType: 'size' }} className="relative w-full h-full">
-                  <img 
-                    src={backgroundImages[activeBgIndex]} 
-                    alt="Full View" 
-                    className="w-full h-full object-cover"
-                  />
+              {/* Main Fullscreen Container */}
+              {(() => {
+                const previewSrc = backgroundImages[activeBgIndex] || originalImage;
+                return (
+                  <div 
+                    className="relative h-full max-h-full max-w-full shadow-2xl overflow-hidden rounded-2xl bg-white flex items-center justify-center"
+                    style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+                  >
+                    <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
+                      <img 
+                        src={previewSrc} 
+                        alt="Full View" 
+                        className="absolute inset-0 w-full h-full object-contain"
+                      />
 
                   {/* Proportional Text Overlay in Fullscreen */}
                   <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
@@ -1054,10 +1052,12 @@ export default function App() {
                   </div>
                 </div>
               </div>
+                );
+              })()}
 
               <button 
                 onClick={() => setIsFullScreen(false)}
-                className="absolute top-10 right-10 p-4 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full text-white transition-all z-[110]"
+                className="absolute top-4 right-4 z-[120] p-3 bg-white/20 hover:bg-white/35 backdrop-blur-md rounded-full text-white transition-all"
               >
                 <X size={24} />
               </button>
