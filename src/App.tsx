@@ -80,24 +80,36 @@ export default function App() {
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasReceivedSaasInit = useRef(false);
 
   // SaaS Init
   useEffect(() => {
+    const loadGallery = async (uid: string, tid: string, role: number) => {
+      try {
+        const images = await saasService.getImages(uid, tid, role);
+        setGallery(images);
+      } catch (galleryErr) {
+        console.error("SaaS gallery load failed:", galleryErr);
+        // We don't clear user/tool if gallery fails
+      }
+    };
+
     const initSaaS = async (uid: string, tid: string) => {
       try {
-        console.log("Launching SaaS with:", { uid, tid });
+        console.log("[SaaS] Initializing...", { uid, tid });
         const data = await saasService.launch(uid, tid);
-        console.log("SaaS Launch Success:", data);
+        console.log("[SaaS] Launch Success:", data);
         setUser(data.user);
         setTool(data.tool);
-        // Load initial gallery
-        const images = await saasService.getImages(uid, tid || toolId, data.user.role);
-        setGallery(images);
+        // Load gallery after successful launch
+        loadGallery(uid, tid, data.user.role);
       } catch (err) {
-        console.error("SaaS launch failed DETAILS:", err);
-        // Fallback for demo if SaaS fails
-        setUser({ id: userId, name: "Demo User", enterprise: "Demo Co.", integral: 100, role: 1 });
-        setTool({ id: toolId, name: "香水设计专家", integral: 10, status: "active" });
+        console.error("[SaaS] Launch failed:", err);
+        // Only fallback to Demo User if we haven't received a real init from parent
+        if (!hasReceivedSaasInit.current) {
+          setUser({ id: userId, name: "Demo User", enterprise: "Demo Co.", integral: 100, role: 1 });
+          setTool({ id: toolId, name: "香水设计专家", integral: 10, status: "active" });
+        }
       }
     };
 
@@ -105,7 +117,8 @@ export default function App() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'SAAS_INIT') {
         const { userId: uid, toolId: tid } = event.data;
-        console.log("SAAS_INIT received:", { uid, tid });
+        console.log("[SaaS] SAAS_INIT received from parent:", { uid, tid });
+        hasReceivedSaasInit.current = true;
         if (uid) setUserId(uid);
         if (tid) setToolId(tid);
         initSaaS(uid || userId, tid || toolId);
@@ -114,26 +127,32 @@ export default function App() {
 
     window.addEventListener('message', handleMessage);
     
-    // Only call initial init if we are NOT in an iframe or after a short delay
     const isIframe = window.self !== window.top;
+    let fallbackTimeout: any = null;
+
     if (!isIframe) {
-      // For local dev/standalone
+      // Standalone dev environment
+      console.log("[SaaS] Standalone mode, auto-launching");
       initSaaS(userId, toolId);
     } else {
-      // Give the parent window a moment to send SAAS_INIT
-      const timeout = setTimeout(() => {
-        if (!userId || userId === 'user_123') {
-          console.log("Iframe init fallback");
-          initSaaS(userId, toolId);
+      // Iframe environment
+      fallbackTimeout = setTimeout(() => {
+        if (!hasReceivedSaasInit.current) {
+          const isLocal = window.location.hostname === 'localhost';
+          if (isLocal) {
+            console.log("[SaaS] Iframe fallback initiated (local dev)");
+            initSaaS(userId, toolId);
+          } else {
+            console.log("[SaaS] Iframe fallback skipped (production environment waiting for parent)");
+          }
         }
-      }, 2000);
-      return () => {
-        window.removeEventListener('message', handleMessage);
-        clearTimeout(timeout);
-      };
+      }, 3000);
     }
 
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
+    };
   }, []);
 
   // Load history from localStorage

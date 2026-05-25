@@ -49,6 +49,32 @@ app.get("/api/health", (req, res) => {
 
 // --- Gemini API Routes ---
 
+app.post("/api/gemini", async (req, res) => {
+  const { model, payload } = req.body;
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: "GEMINI_API_KEY missing in server .env" });
+  }
+
+  try {
+    const modelName = model.startsWith('models/') ? model : `models/${model}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
+
+    const geminiRes = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await geminiRes.json();
+    res.status(geminiRes.status).json(data);
+  } catch (error: any) {
+    console.error("Local Gemini Proxy Error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post("/api/ai/analyze", async (req, res) => {
   try {
     const { image } = req.body;

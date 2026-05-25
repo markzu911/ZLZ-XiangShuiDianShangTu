@@ -25,41 +25,46 @@ export interface SaveImageResponse {
   fileSize: number;
 }
 
+async function requestJson(url: string, options: RequestInit = {}) {
+  const res = await fetch(url, options);
+  const contentType = res.headers.get('content-type') || '';
+  
+  if (!contentType.includes('application/json')) {
+    const text = await res.text();
+    if (text.trim().startsWith('<!doctype') || text.trim().startsWith('<html')) {
+      throw new Error(`API returned HTML instead of JSON. Check the rewrite rule for ${url}. (Status: ${res.status})`);
+    }
+    throw new Error(`Expected JSON but got ${contentType}. Response: ${text.substring(0, 100)}`);
+  }
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || data.error || `Request failed with status ${res.status}`);
+  }
+  return data;
+}
+
 export const saasService = {
   // 1. Launch
   launch: async (userId: string, toolId: string): Promise<SaasInitData> => {
-    try {
-      const res = await fetch('/api/tool/launch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, toolId })
-      });
-      
-      if (!res.ok) {
-        const text = await res.text();
-        console.error(`SaaS Launch HTTP Error: ${res.status}`, text);
-        throw new Error(`Launch failed with status ${res.status}`);
-      }
-
-      const result = await res.json();
-      if (!result.success) throw new Error(result.message || 'Launch failed');
-      return result.data;
-    } catch (e) {
-      console.error("saasService.launch CRITICAL ERROR:", e);
-      throw e;
-    }
-  },
-
-  // 2. Verify
-  verify: async (userId: string, toolId: string): Promise<any> => {
-    const res = await fetch('/api/tool/verify', {
+    const data = await requestJson('/api/tool/launch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, toolId })
     });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.message || 'Verification failed');
-    return result.data;
+    if (!data.success) throw new Error(data.message || 'Launch failed');
+    return data.data;
+  },
+
+  // 2. Verify
+  verify: async (userId: string, toolId: string): Promise<any> => {
+    const data = await requestJson('/api/tool/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, toolId })
+    });
+    if (!data.success) throw new Error(data.message || 'Verification failed');
+    return data.data;
   },
 
   // 3. Full save flow (Consume -> Direct Token -> Upload -> Commit)
@@ -70,16 +75,15 @@ export const saasService = {
     fileName: string = 'result.png'
   ): Promise<SaveImageResponse> => {
     // A. Consume
-    const consumeRes = await fetch('/api/tool/consume', {
+    const consume = await requestJson('/api/tool/consume', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId, toolId })
     });
-    const consume = await consumeRes.json();
     if (!consume.success) throw new Error(consume.message || 'Consumption failed');
 
     // B. Get Direct Token
-    const tokenRes = await fetch('/api/upload/direct-token', {
+    const token = await requestJson('/api/upload/direct-token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -91,10 +95,10 @@ export const saasService = {
         fileSize: imageBuffer.size
       })
     });
-    const token = await tokenRes.json();
     if (!token.success) throw new Error(token.error || 'Failed to get upload token');
 
     // C. PUT to OSS (or mock)
+    // Note: Upload usually doesn't return JSON, it might be 200 OK
     const uploadRes = await fetch(token.uploadUrl, {
       method: token.method || 'PUT',
       headers: token.headers,
@@ -103,7 +107,7 @@ export const saasService = {
     if (!uploadRes.ok) throw new Error(`Upload failed: ${uploadRes.status}`);
 
     // D. Commit
-    const commitRes = await fetch('/api/upload/commit', {
+    const commit = await requestJson('/api/upload/commit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -114,7 +118,6 @@ export const saasService = {
         fileSize: imageBuffer.size
       })
     });
-    const commit = await commitRes.json();
     if (!commit.success || !commit.savedToRecords) {
       throw new Error(commit.error || 'Commit failed');
     }
@@ -124,19 +127,17 @@ export const saasService = {
 
   // 4. Get List
   getImages: async (userId: string, toolId?: string, role: number = 1): Promise<any[]> => {
-    const res = await fetch(`/api/upload/image?userId=${userId}&role=${role}${toolId ? `&toolId=${toolId}` : ''}`);
-    const result = await res.json();
-    return result.data || [];
+    const data = await requestJson(`/api/upload/image?userId=${userId}&role=${role}${toolId ? `&toolId=${toolId}` : ''}`);
+    return data.data || [];
   },
 
   // 5. Delete
   deleteImage: async (id: string, userId: string, role: number = 1): Promise<void> => {
-    const res = await fetch('/api/upload/image', {
+    const data = await requestJson('/api/upload/image', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, userId, role })
     });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.message || 'Delete failed');
+    if (!data.success) throw new Error(data.message || 'Delete failed');
   }
 };
