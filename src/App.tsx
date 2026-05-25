@@ -85,14 +85,16 @@ export default function App() {
   useEffect(() => {
     const initSaaS = async (uid: string, tid: string) => {
       try {
+        console.log("Launching SaaS with:", { uid, tid });
         const data = await saasService.launch(uid, tid);
+        console.log("SaaS Launch Success:", data);
         setUser(data.user);
         setTool(data.tool);
         // Load initial gallery
         const images = await saasService.getImages(uid, tid || toolId, data.user.role);
         setGallery(images);
       } catch (err) {
-        console.error("SaaS launch failed:", err);
+        console.error("SaaS launch failed DETAILS:", err);
       }
     };
 
@@ -126,7 +128,21 @@ export default function App() {
 
   // Save history
   useEffect(() => {
-    localStorage.setItem('perfume_history', JSON.stringify(history));
+    try {
+      // Limit history to 10 items to prevent QuotaExceededError (base64 is heavy)
+      const limitedHistory = history.slice(0, 10);
+      localStorage.setItem('perfume_history', JSON.stringify(limitedHistory));
+    } catch (e) {
+      console.warn("LocalStorage quota exceeded, cleared some history", e);
+      // If still fails, clear half of history and try once more
+      try {
+        if (history.length > 5) {
+          localStorage.setItem('perfume_history', JSON.stringify(history.slice(0, 5)));
+        }
+      } catch (innerE) {
+        console.error("Critical failure saving history", innerE);
+      }
+    }
   }, [history]);
 
   // Handle image upload

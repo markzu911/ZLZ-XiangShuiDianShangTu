@@ -28,14 +28,26 @@ export interface SaveImageResponse {
 export const saasService = {
   // 1. Launch
   launch: async (userId: string, toolId: string): Promise<SaasInitData> => {
-    const res = await fetch('/api/tool/launch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, toolId })
-    });
-    const result = await res.json();
-    if (!result.success) throw new Error(result.message || 'Launch failed');
-    return result.data;
+    try {
+      const res = await fetch('/api/tool/launch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, toolId })
+      });
+      
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(`SaaS Launch HTTP Error: ${res.status}`, text);
+        throw new Error(`Launch failed with status ${res.status}`);
+      }
+
+      const result = await res.json();
+      if (!result.success) throw new Error(result.message || 'Launch failed');
+      return result.data;
+    } catch (e) {
+      console.error("saasService.launch CRITICAL ERROR:", e);
+      throw e;
+    }
   },
 
   // 2. Verify
