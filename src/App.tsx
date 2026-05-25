@@ -95,6 +95,9 @@ export default function App() {
         setGallery(images);
       } catch (err) {
         console.error("SaaS launch failed DETAILS:", err);
+        // Fallback for demo if SaaS fails
+        setUser({ id: userId, name: "Demo User", enterprise: "Demo Co.", integral: 100, role: 1 });
+        setTool({ id: toolId, name: "香水设计专家", integral: 10, status: "active" });
       }
     };
 
@@ -102,6 +105,7 @@ export default function App() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'SAAS_INIT') {
         const { userId: uid, toolId: tid } = event.data;
+        console.log("SAAS_INIT received:", { uid, tid });
         if (uid) setUserId(uid);
         if (tid) setToolId(tid);
         initSaaS(uid || userId, tid || toolId);
@@ -109,7 +113,25 @@ export default function App() {
     };
 
     window.addEventListener('message', handleMessage);
-    initSaaS(userId, toolId); // Initial call for dev
+    
+    // Only call initial init if we are NOT in an iframe or after a short delay
+    const isIframe = window.self !== window.top;
+    if (!isIframe) {
+      // For local dev/standalone
+      initSaaS(userId, toolId);
+    } else {
+      // Give the parent window a moment to send SAAS_INIT
+      const timeout = setTimeout(() => {
+        if (!userId || userId === 'user_123') {
+          console.log("Iframe init fallback");
+          initSaaS(userId, toolId);
+        }
+      }, 2000);
+      return () => {
+        window.removeEventListener('message', handleMessage);
+        clearTimeout(timeout);
+      };
+    }
 
     return () => window.removeEventListener('message', handleMessage);
   }, []);
@@ -128,19 +150,18 @@ export default function App() {
 
   // Save history
   useEffect(() => {
+    if (history.length === 0) return;
     try {
-      // Limit history to 10 items to prevent QuotaExceededError (base64 is heavy)
-      const limitedHistory = history.slice(0, 10);
+      // Limit history to 6 items to prevent QuotaExceededError (base64 is heavy)
+      const limitedHistory = history.slice(0, 6);
       localStorage.setItem('perfume_history', JSON.stringify(limitedHistory));
     } catch (e) {
-      console.warn("LocalStorage quota exceeded, cleared some history", e);
-      // If still fails, clear half of history and try once more
+      console.warn("LocalStorage quota exceeded, clearing history partially", e);
+      // If still fails, clear even more
       try {
-        if (history.length > 5) {
-          localStorage.setItem('perfume_history', JSON.stringify(history.slice(0, 5)));
-        }
+        localStorage.setItem('perfume_history', JSON.stringify(history.slice(0, 3)));
       } catch (innerE) {
-        console.error("Critical failure saving history", innerE);
+        console.error("Critical failure saving history to localStorage", innerE);
       }
     }
   }, [history]);
@@ -701,6 +722,7 @@ export default function App() {
                                  setActiveHistoryId(record.id);
                                  setOriginalImage(record.originalImage);
                                  setBackgroundImages(record.backgroundImages);
+                                 setActiveBgIndex(0);
                                  setAnalysis({
                                    title: record.title,
                                    sellingPoints: record.sellingPoints,
