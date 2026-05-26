@@ -78,6 +78,7 @@ export default function App() {
   const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -333,7 +334,7 @@ export default function App() {
 
         // 1. Title: Proportional top center
         const titleSize = Math.floor(base * 0.035);
-        ctx.font = `bold ${titleSize}px "Inter", sans-serif`;
+        ctx.font = `black 900 ${titleSize}px "Inter", sans-serif`;
         const titleLines = (analysis.title || '').split('\n');
         titleLines.forEach((line, i) => {
           ctx.fillText(line, w / 2, h * 0.115 + (i * titleSize * 1.2));
@@ -341,7 +342,7 @@ export default function App() {
 
         // 2. Selling Points: Proportional mid section
         const itemSize = Math.floor(base * 0.025);
-        ctx.font = `bold ${itemSize}px "Inter", sans-serif`;
+        ctx.font = `bold ${itemSize}px "Outfit", sans-serif`;
         ctx.textBaseline = 'middle';
         
         const drawItem = (text: string, xAnchor: number, yAnchorOrigin: number, align: CanvasTextAlign) => {
@@ -396,7 +397,7 @@ export default function App() {
 
         // 3. Bottom Info: Proportional bottom center
         const bottomSize = Math.floor(base * 0.018);
-        ctx.font = `${bottomSize}px "Inter", sans-serif`;
+        ctx.font = `500 ${bottomSize}px "Outfit", sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         const bottomLines = (analysis.bottomInfo || '').split('\n');
@@ -469,441 +470,373 @@ export default function App() {
           )}
         </header>
 
+        {/* Step Navigation Sub-Header */}
+        <div className="bg-white border-b border-gray-100 px-4 md:px-8 shrink-0 overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-8 h-12 max-w-[1200px] mx-auto">
+            <button 
+              onClick={() => setCurrentStep(1)}
+              className={`flex items-center gap-2 h-full border-b-2 transition-all whitespace-nowrap text-xs font-bold ${currentStep === 1 ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentStep === 1 ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}>1</div>
+              产品拍摄与风格
+            </button>
+            <button 
+              onClick={() => setCurrentStep(2)}
+              className={`flex items-center gap-2 h-full border-b-2 transition-all whitespace-nowrap text-xs font-bold ${currentStep === 2 ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentStep === 2 ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}>2</div>
+              排版调整与导出作品
+            </button>
+          </div>
+        </div>
+
         {/* Tab Content */}
-        <div className="flex-1 p-4 md:p-10 flex flex-col lg:min-h-0 lg:overflow-hidden">
+        <div className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col lg:min-h-0 lg:overflow-hidden bg-white">
           <AnimatePresence mode="wait">
             {activeTab === 'workspace' ? (
-              currentStep === 1 ? (
-              <motion.div 
-                key="step-1"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="w-full flex-1 flex flex-col md:flex-row gap-16 max-w-[1080px] mx-auto pb-10 md:pb-0 md:min-h-0 md:h-full md:overflow-hidden justify-center"
-              >
-                {/* Left: Upload Card */}
-                <div className="w-full md:flex-1 flex flex-col shrink-0 md:h-full justify-center">
-                  {!originalImage ? (
-                    <div 
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full aspect-[4/3] md:aspect-auto md:h-[60%] md:max-h-[600px] bg-white rounded-[24px] border-2 border-dashed border-gray-200 hover:border-black hover:bg-gray-50/50 transition-all flex flex-col items-center justify-center gap-4 cursor-pointer group shadow-sm bg-gray-50/20"
-                    >
-                      <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-500">
-                        <Upload className="text-black w-6 h-6" />
-                      </div>
-                      <div className="text-center px-4">
-                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">上传香水实拍图</h3>
-                        <p className="text-[10px] text-gray-400 font-medium">推荐纯色背景环境</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-6 bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm w-full md:h-[60%] md:max-h-[600px]">
-                      <div className="w-full h-full max-h-[300px] bg-gray-50 rounded-xl border p-2 border-gray-100 flex-shrink-0 flex items-center justify-center">
-                        <img src={originalImage} className="w-full h-full object-contain" alt="Preview" />
-                      </div>
-                      <div className="flex flex-col items-center gap-1 w-full">
-                        <h4 className="text-sm font-bold text-gray-800 text-center">已载入产品图</h4>
-                        <p className="text-xs text-gray-400 text-center mb-2">完成右侧设置后可生成</p>
-                        <button 
-                          onClick={() => fileInputRef.current?.click()}
-                          className="px-6 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold hover:border-black hover:bg-white transition-all w-full max-w-[200px]"
-                        >
-                          更换图片
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {error && (
+              <div key="workspace-main" className="flex-1 flex flex-row gap-6 h-full w-full max-w-[1500px] mx-auto lg:overflow-hidden">
+                <div className="flex-1 flex flex-col md:flex-row gap-6 min-w-0 h-full">
+                  {currentStep === 1 ? (
                     <motion.div 
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-4 flex items-center justify-center gap-2 text-red-500 text-[10px] font-bold bg-red-50 p-3 rounded-xl border border-red-100 md:max-w-[600px] mx-auto w-full"
+                      key="step-1"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="flex-1 flex flex-col md:flex-row gap-6 h-full"
                     >
-                      <AlertCircle size={14} />
-                      {error}
+                      {/* Column 1: Upload (Left) */}
+                      <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
+                        <div className="h-8 flex items-center px-1">
+                          <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">01 / Products</span>
+                        </div>
+                        <div className="flex-1 bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col overflow-hidden relative">
+                          <div className="flex-1 w-full bg-gray-50/30 relative overflow-hidden flex items-center justify-center p-8">
+                            {!originalImage ? (
+                              <div 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full h-full border-2 border-dashed border-gray-100 rounded-[28px] hover:border-black hover:bg-white transition-all flex flex-col items-center justify-center gap-6 cursor-pointer bg-transparent"
+                              >
+                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                  <Upload className="text-black w-6 h-6" />
+                                </div>
+                                <div className="text-center">
+                                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">载入原始影像</h3>
+                                  <p className="text-[10px] text-gray-400 mt-1 font-medium italic">Supports PNG, JPG @ Studio Shots</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div 
+                                className="relative h-full max-w-full rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgb(0,0,0,0.15)] bg-white flex items-center justify-center cursor-zoom-in group"
+                                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+                                onClick={() => setIsFullScreen(true)}
+                              >
+                                <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
+                                  <img src={originalImage} alt="Source" className="absolute inset-0 w-full h-full object-contain" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="h-16 border-t border-gray-50 flex items-center px-10 bg-white justify-between">
+                            <span className="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">Material Input Stage</span>
+                            {originalImage && (
+                              <button onClick={() => fileInputRef.current?.click()} className="text-[11px] font-black text-black flex items-center gap-2 hover:opacity-50 transition-all">
+                                <Upload size={16} /> 更换素材
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {error && <p className="text-[9px] text-red-500 font-bold text-center px-4">{error}</p>}
+                      </div>
+
+                      {/* Column 2: Configuration (Middle) */}
+                      <div className="w-full md:w-[320px] lg:w-[380px] shrink-0 flex flex-col gap-4 h-full">
+                        <div className="h-8 flex items-center px-1">
+                          <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">02 / Art Style</span>
+                        </div>
+                        <div className="flex-1 bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 lg:p-8 flex flex-col gap-8 overflow-y-auto no-scrollbar">
+                          <div className="space-y-4">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">画面风格</label>
+                            <div className="grid grid-cols-2 gap-3">
+                              {STYLES.map(s => (
+                                <button 
+                                  key={s.id}
+                                  onClick={() => setStyle(s.id)}
+                                  className={`p-4 rounded-2xl border text-center transition-all flex flex-col items-center gap-2 ${
+                                    style === s.id ? 'bg-black text-white border-black shadow-xl scale-[1.02]' : 'bg-gray-50 text-gray-400 border-transparent hover:border-gray-200'
+                                  }`}
+                                >
+                                  <span className="text-[11px] font-bold">{s.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-6">
+                            <div className="space-y-3">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">拍摄视角</label>
+                              <div className="grid grid-cols-3 gap-2">
+                                {PERSPECTIVES.map(p => (
+                                  <button onClick={() => setPerspective(p.id)} key={p.id} className={`py-2 px-1 rounded-xl text-[10px] font-bold border transition-all ${perspective === p.id ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50'}`}>{p.name}</button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">渲染比例</label>
+                              <div className="grid grid-cols-4 gap-2">
+                                {RATIOS.map(r => (
+                                  <button onClick={() => setAspectRatio(r)} key={r} className={`py-2 rounded-xl text-[10px] font-bold border transition-all ${aspectRatio === r ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50'}`}>{r}</button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto pt-6 border-t border-gray-50">
+                            <button 
+                              disabled={!originalImage || isGenerating}
+                              onClick={handleGenerate}
+                              className="w-full h-14 bg-black text-white rounded-[24px] font-black text-[12px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-20 shadow-2xl shadow-black/10"
+                            >
+                              {isGenerating ? <Loader2 className="animate-spin w-4 h-4" /> : <Sparkles size={16} />}
+                              生成高清成图
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="step-2"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      className="flex-1 flex flex-col md:flex-row gap-6 h-full"
+                    >
+                      {/* Column 1: Preview (Left) */}
+                      <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
+                        <div className="h-8 flex items-center justify-between px-2">
+                          <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">03 / Preview Result</span>
+                          <div className="flex gap-1.5">
+                            {backgroundImages.map((_, i) => (
+                              <button key={i} onClick={() => setActiveBgIndex(i)} className={`w-2 h-2 rounded-full transition-all ${activeBgIndex === i ? 'bg-black w-5' : 'bg-gray-200'}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex-1 bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col overflow-hidden relative">
+                          <div className="flex-1 w-full bg-gray-50/30 relative overflow-hidden flex items-center justify-center p-8">
+                            {(() => {
+                              const previewSrc = backgroundImages[activeBgIndex] || originalImage;
+                              return (
+                                <div 
+                                  className="relative h-full max-w-full rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgb(0,0,0,0.15)] bg-white flex items-center justify-center cursor-zoom-in group"
+                                  style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+                                  onClick={() => (previewSrc ? setIsFullScreen(true) : null)}
+                                >
+                                  <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
+                                    {previewSrc ? (
+                                      <img src={previewSrc} alt="Preview" className="absolute inset-0 w-full h-full object-contain" />
+                                    ) : (
+                                      <div className="flex flex-col items-center justify-center text-gray-300 gap-4">
+                                        <div className="w-16 h-16 rounded-full border-4 border-dashed border-gray-100 flex items-center justify-center">
+                                          <ImageIcon size={32} />
+                                        </div>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em]">Wait for Input</p>
+                                      </div>
+                                    )}
+                                    <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
+                                      {/* Title - Top Center */}
+                                      <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
+                                        <motion.h2 
+                                          layoutId="prev-title"
+                                          className="font-black uppercase tracking-tight whitespace-pre-line leading-tight drop-shadow-sm"
+                                        >
+                                          {analysis.title}
+                                        </motion.h2>
+                                      </div>
+
+                                      {/* Callout Blocks - Left */}
+                                      <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
+                                        {analysis.sellingPoints.length >= 1 && (
+                                          <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
+                                            <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
+                                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                          </motion.div>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Callout Blocks - Right */}
+                                      <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
+                                        {analysis.sellingPoints.length === 2 && (
+                                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
+                                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                            <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
+                                          </motion.div>
+                                        )}
+                                        {analysis.sellingPoints.length === 3 && (
+                                          <>
+                                            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi] drop-shadow-sm">
+                                              <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                              <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
+                                            </motion.div>
+                                            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi] drop-shadow-sm">
+                                              <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                              <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
+                                            </motion.div>
+                                          </>
+                                        )}
+                                      </div>
+
+                                      {/* Bottom Info */}
+                                      <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
+                                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight drop-shadow-sm">
+                                          {analysis.bottomInfo}
+                                        </motion.p>
+                                      </div>
+                                    </div>
+                                    <div className="absolute top-6 right-6 p-2.5 bg-black/5 hover:bg-black/10 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
+                                      <Maximize2 size={18} />
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })()}
+                          </div>
+                          <div className="h-16 border-t border-gray-50 flex items-center px-10 bg-white justify-between">
+                            <span className="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">High Definition Preview</span>
+                            <div className="flex items-center gap-8">
+                              <button onClick={handleDownload} className="text-[11px] font-black text-black flex items-center gap-2 hover:opacity-50 transition-all">
+                                <Download size={16} /> 保存排版画面
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+
+                      {/* Column 2: Editing Section (Middle) */}
+                      <div className="w-full md:w-[320px] lg:w-[380px] shrink-0 flex flex-col gap-3 h-full">
+                        <div className="h-8 flex items-center px-1">
+                          <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">04 / Text Tuning</span>
+                        </div>
+                        <div className="flex-1 bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-6 md:p-8 flex flex-col gap-8 overflow-y-auto no-scrollbar">
+                          <div className="space-y-6">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">排版大标题</label>
+                              <textarea 
+                                value={analysis.title}
+                                onChange={e => setAnalysis({...analysis, title: e.target.value})}
+                                className="w-full p-4 bg-gray-50 border border-transparent rounded-[24px] text-xs font-black focus:bg-white focus:border-gray-200 outline-none transition-all resize-none h-28"
+                                placeholder="..."
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">核心卖点点缀</label>
+                              <div className="space-y-2.5">
+                                {analysis.sellingPoints.map((sp, i) => (
+                                  <input 
+                                    key={i}
+                                    value={sp}
+                                    onChange={e => {
+                                      const next = [...analysis.sellingPoints];
+                                      next[i] = e.target.value;
+                                      setAnalysis({...analysis, sellingPoints: next});
+                                    }}
+                                    className="w-full p-3.5 bg-gray-50 border border-transparent rounded-[16px] text-xs font-bold focus:bg-white focus:border-gray-200 outline-none transition-all"
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">基础详情语</label>
+                              <input 
+                                value={analysis.bottomInfo}
+                                onChange={e => setAnalysis({...analysis, bottomInfo: e.target.value})}
+                                className="w-full p-3.5 bg-gray-50 border border-transparent rounded-[16px] text-[11px] font-medium focus:bg-white focus:border-gray-200 outline-none transition-all"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">文字调色盘</label>
+                              <div className="flex gap-2">
+                                <input 
+                                  type="color" 
+                                  value={analysis.textColor}
+                                  onChange={e => setAnalysis({...analysis, textColor: e.target.value})}
+                                  className="w-14 h-14 p-0 rounded-[18px] border-none cursor-pointer overflow-hidden shadow-sm"
+                                />
+                                <div className="flex-1 px-5 flex items-center bg-gray-50 rounded-[18px]">
+                                  <span className="text-[11px] font-mono font-bold text-gray-400">{analysis.textColor}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-auto pt-6 border-t border-gray-50 flex gap-4">
+                            <button onClick={() => setCurrentStep(1)} className="flex-1 h-12 border border-gray-200 rounded-full text-[10px] font-black uppercase tracking-widest hover:border-black transition-all">
+                              重设参数
+                            </button>
+                            <button onClick={handleDownload} className="flex-1 h-12 bg-black text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-black/10 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                              保存导出
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
                 </div>
 
-                {/* Right: AI Style & Output */}
-                <div className="w-full md:w-[380px] xl:w-[420px] flex flex-col gap-6 flex-shrink-0 md:h-full md:overflow-y-auto no-scrollbar md:py-6">
-                  <div className="bg-white rounded-[24px] border border-gray-50 shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-6 space-y-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center flex-row gap-2">
-                         <Sparkles className="text-indigo-500 w-4 h-4" />
-                         <span className="text-xs font-bold text-gray-800">画面风格选择</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        {STYLES.map(s => (
-                          <button 
-                            key={s.id}
-                            onClick={() => setStyle(s.id)}
-                            className={`px-3 py-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${
-                              style === s.id 
-                                ? 'bg-black text-white border-black shadow-md' 
-                                : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-gray-800 hover:text-black'
-                            }`}
-                          >
-                            <ImageIcon size={18} className={style === s.id ? 'opacity-80' : 'opacity-40'} />
-                            <span className="text-[11px] font-bold">{s.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-5 pt-2">
-                      <div className="space-y-2.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">拍摄视角</label>
-                        <div className="flex flex-wrap gap-2">
-                          {PERSPECTIVES.map(p => (
-                            <button 
-                              key={p.id}
-                              onClick={() => setPerspective(p.id)}
-                              className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
-                                perspective === p.id ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50 hover:border-gray-300'
-                              }`}
-                            >
-                              {p.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="space-y-2.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">画幅比例</label>
-                        <div className="flex flex-wrap gap-2">
-                          {RATIOS.map(r => (
-                            <button 
-                              key={r}
-                              onClick={() => setAspectRatio(r)}
-                              className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
-                                aspectRatio === r ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50 hover:border-gray-300'
-                              }`}
-                            >
-                              {r}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="space-y-2.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">输出分辨率</label>
-                        <div className="flex flex-wrap gap-2">
-                          {QUALITIES.map(q => (
-                            <button 
-                              key={q}
-                              onClick={() => setQuality(q)}
-                              className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-all ${
-                                quality === q ? 'bg-black text-white border-black' : 'border-gray-100 text-gray-400 bg-gray-50 hover:border-gray-300'
-                              }`}
-                            >
-                              {q}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="pt-2">
-                      <button 
-                        disabled={!originalImage || isGenerating}
-                        onClick={handleGenerate}
-                        className="w-full h-12 bg-black text-white rounded-xl font-bold text-[13px] transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] shadow-lg disabled:opacity-30"
-                      >
-                        {isGenerating ? <Loader2 className="animate-spin w-4 h-4" /> : <Sparkles size={16} />}
-                        {isGenerating ? 'AI 构建中...' : '生成商品图'}
-                      </button>
-                    </div>
+                {/* Column 3: History Sidebar (Right, Collapsible) */}
+                <div className={`transition-all duration-500 ease-in-out flex flex-col shrink-0 overflow-hidden ${isHistoryCollapsed ? 'w-12' : 'w-[220px] lg:w-[260px]'}`}>
+                  <div className="h-8 flex items-center justify-between px-2 mb-3">
+                    {!isHistoryCollapsed && <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest font-mono">Archive / 历史</span>}
+                    <button 
+                      onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-black transition-colors ml-auto"
+                    >
+                      {isHistoryCollapsed ? <ChevronLeft size={16} /> : <ArrowLeft size={16} className="rotate-180" />}
+                    </button>
                   </div>
-                </div>
-              </motion.div>
-              ) : (
-              <motion.div 
-                key="step-2"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="w-full flex-1 flex flex-col md:flex-row gap-6 max-w-[1200px] mx-auto pb-10 md:pb-0 md:min-h-0 md:h-full md:overflow-hidden justify-center"
-              >
-                {/* Left Column: Preview & History */}
-                <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-4 md:h-full overflow-hidden">
-                  {/* Huge Preview Container */}
-                  <div className="flex-1 min-w-0 min-h-0 bg-white rounded-[24px] border border-gray-50 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col overflow-hidden relative">
-                    <div className="h-10 border-b border-gray-50 bg-white flex items-center justify-between px-5 bg-gradient-to-r from-gray-50/50 to-white">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                          渲染预览
-                        </span>
-                        {isFallbackMode && (
-                          <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
-                            ✨ 已生成方案 (当前为原图预览)
-                          </span>
-                        )}
-                      </div>
-                      {backgroundImages.length > 1 && (
-                        <div className="flex items-center gap-1.5">
-                          {backgroundImages.map((_, i) => (
-                             <button 
-                               key={i}
-                               onClick={() => setActiveBgIndex(i)}
-                               className={`w-2 h-2 rounded-full transition-all ${activeBgIndex === i ? 'bg-black w-4' : 'bg-gray-200'}`}
-                             />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 w-full bg-gray-50 relative overflow-hidden flex items-center justify-center p-2 outline-none">
-                      {isGenerating ? (
-                        <div className="text-center space-y-4">
-                          <div className="w-10 h-10 relative mx-auto">
-                            <div className="absolute inset-0 border-2 border-gray-200 rounded-full" />
-                            <motion.div 
-                              className="absolute inset-0 border-2 border-black rounded-full border-t-transparent"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            />
-                          </div>
-                          <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest tracking-[0.2em] font-mono">RENDERING...</p>
-                        </div>
-                      ) : (backgroundImages.length > 0 || originalImage) ? (
-                        <div className="w-full h-full flex items-center justify-center relative p-2 md:p-6 cursor-zoom-in" onClick={() => setIsFullScreen(true)}>
-                          {(() => {
-                            const previewSrc = backgroundImages[activeBgIndex] || originalImage;
-                            return (
-                              <div 
-                                key={activeHistoryId + '-' + activeBgIndex}
-                                className="relative h-full max-w-full rounded-[16px] overflow-hidden shadow-lg group bg-white flex items-center justify-center"
-                                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
-                              >
-                                <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
-                                  <img 
-                                    src={previewSrc} 
-                                    alt="Preview" 
-                                    className="absolute inset-0 w-full h-full object-contain"
-                                  />
-                                  
-                                  <button 
-                                    className="absolute top-4 right-4 z-20 p-2 bg-black/10 hover:bg-black/30 backdrop-blur-md rounded-full text-white transition-all opacity-0 group-hover:opacity-100 pointer-events-auto"
-                                    onClick={(e) => { e.stopPropagation(); setIsFullScreen(true); }}
-                                  >
-                                    <Maximize2 size={16} />
-                                  </button>
-                                  
-                                  {/* Text Overlay Layer */}
-                                  <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
-                                    {/* Title - Top Center */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
-                                      <motion.h2 
-                                        layoutId="prev-title"
-                                        className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
-                                      >
-                                        {analysis.title}
-                                      </motion.h2>
-                                    </div>
-
-                                    {/* Callout Blocks */}
-                                    {/* Left */}
-                                    <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
-                                      {analysis.sellingPoints.length >= 1 && (
-                                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
-                                          <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
-                                          <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                        </motion.div>
-                                      )}
-                                    </div>
-                                    
-                                    {/* Right */}
-                                    <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
-                                      {analysis.sellingPoints.length === 2 && (
-                                        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi]">
-                                          <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                          <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                        </motion.div>
-                                      )}
-                                      {analysis.sellingPoints.length === 3 && (
-                                        <>
-                                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi]">
-                                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                            <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                          </motion.div>
-                                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi]">
-                                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                            <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
-                                          </motion.div>
-                                        </>
-                                      )}
-                                    </div>
-
-                                    {/* Bottom Info */}
-                                    <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
-                                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight">
-                                        {analysis.bottomInfo}
-                                      </motion.p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })()}
+                  
+                  <div className={`flex-1 overflow-hidden flex flex-col transition-opacity duration-300 ${isHistoryCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                    <div className="flex-1 bg-white border border-gray-100 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+                      {history.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-20">
+                          <HistoryIcon size={32} className="text-black mb-4" />
+                          <p className="text-[10px] font-black uppercase tracking-widest">No Records</p>
                         </div>
                       ) : (
-                        <div className="text-center opacity-[0.03]">
-                          <ImageIcon size={100} className="mx-auto" />
-                        </div>
+                        history.map((record) => (
+                          <div 
+                            key={record.id}
+                            onClick={() => {
+                              setActiveHistoryId(record.id);
+                              setOriginalImage(record.originalImage);
+                              setBackgroundImages(record.backgroundImages);
+                              setActiveBgIndex(0);
+                              setAnalysis({
+                                title: record.title,
+                                sellingPoints: record.sellingPoints,
+                                bottomInfo: record.bottomInfo,
+                                textColor: record.textColor || '#1f2937'
+                              });
+                              setCurrentStep(2);
+                            }}
+                            className={`group relative aspect-[3/4] rounded-[24px] overflow-hidden cursor-pointer border-2 transition-all ${activeHistoryId === record.id ? 'border-black shadow-xl ring-4 ring-black/5' : 'border-transparent hover:border-gray-200'}`}
+                          >
+                            <img src={record.backgroundImages[0] || record.originalImage} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="History" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-end p-4">
+                              <p className="text-[10px] font-black text-white truncate uppercase tracking-tighter">{record.title || record.id}</p>
+                            </div>
+                            {activeHistoryId === record.id && (
+                              <div className="absolute top-2 right-2 w-6 h-6 bg-black rounded-full flex items-center justify-center shadow-lg border border-white/20">
+                                <CheckCircle2 size={12} className="text-white" />
+                              </div>
+                            )}
+                          </div>
+                        ))
                       )}
                     </div>
                   </div>
-
-                  {/* History List below Preview */}
-                  {history.length > 0 && (
-                    <div className="h-28 md:h-32 bg-white rounded-[24px] border border-gray-50 flex-shrink-0 shadow-[0_4px_20px_rgb(0,0,0,0.03)] p-4 flex flex-col">
-                      <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 shrink-0 flex items-center justify-between">
-                        历史记录
-                      </h4>
-                      <div className="flex-1 flex gap-3 overflow-x-auto no-scrollbar items-center">
-                        {history.map((record) => {
-                           const coverImage = record.backgroundImages?.[0] || record.originalImage;
-                           const isSelected = activeHistoryId === record.id;
-                           return (
-                             <div 
-                               key={record.id}
-                               className={`h-full aspect-square rounded-xl overflow-hidden relative cursor-pointer flex-shrink-0 border-2 transition-all ${isSelected ? 'border-black' : 'border-gray-100 hover:border-gray-400'}`}
-                               onClick={() => {
-                                 setActiveHistoryId(record.id);
-                                 setOriginalImage(record.originalImage);
-                                 setBackgroundImages(record.backgroundImages);
-                                 setActiveBgIndex(0);
-                                 setAnalysis({
-                                   title: record.title,
-                                   sellingPoints: record.sellingPoints,
-                                   bottomInfo: record.bottomInfo,
-                                   textColor: record.textColor || '#1f2937'
-                                 });
-                               }}
-                             >
-                               <img src={coverImage} className="w-full h-full object-cover" />
-                               <button 
-                                 className="absolute top-1 right-1 z-20 p-1 bg-black/20 hover:bg-black/60 backdrop-blur-sm rounded-full text-white opacity-0 hover:opacity-100 flex items-center justify-center transition-all"
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   setActiveHistoryId(record.id);
-                                   setOriginalImage(record.originalImage);
-                                   setBackgroundImages(record.backgroundImages);
-                                   setAnalysis({
-                                     title: record.title,
-                                     sellingPoints: record.sellingPoints,
-                                     bottomInfo: record.bottomInfo,
-                                     textColor: record.textColor || '#1f2937'
-                                   });
-                                   setIsFullScreen(true);
-                                 }}
-                               >
-                                 <Maximize2 size={12} />
-                               </button>
-                             </div>
-                           )
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
-
-                {/* Right: Text & Layout Config */}
-                <div className="w-full md:w-[280px] xl:w-[320px] flex flex-col gap-4 flex-shrink-0 md:h-full md:overflow-y-auto no-scrollbar md:pb-10">
-                  <button 
-                    onClick={() => setCurrentStep(1)} 
-                    className="flex items-center gap-2 text-gray-500 hover:text-black hover:bg-gray-50 self-start px-2 py-1 rounded-lg transition-colors text-xs font-bold"
-                  >
-                    <ArrowLeft size={14} />
-                    返回修改配置
-                  </button>
-                  <div className="bg-white rounded-[24px] border border-gray-50 p-5 space-y-4 shadow-[0_4px_20px_rgb(0,0,0,0.03)] opacity-100 transition-opacity">
-                    <h3 className="text-[11px] font-bold text-gray-800 flex items-center gap-2 mb-2">
-                       当前选用: {PERSPECTIVES.find(p => p.id === perspective)?.name || '-'}
-                    </h3>
-                    
-                    <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">排版主标题</label>
-                        <textarea 
-                          value={analysis.title}
-                          onChange={(e) => setAnalysis(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="请输入宣传大字标题"
-                          className="w-full p-2.5 bg-gray-50/50 rounded-xl border border-gray-100 focus:ring-1 focus:ring-black outline-none text-[10px] font-bold resize-none h-14 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex justify-between items-center">
-                           <span>核心卖点 (1-3个)</span>
-                        </label>
-                        <div className="grid grid-cols-1 gap-1.5">
-                          {analysis.sellingPoints.map((point, idx) => (
-                            <div key={idx} className="flex gap-1.5 relative group">
-                              <textarea 
-                                value={point}
-                                onChange={(e) => {
-                                  const newPoints = [...analysis.sellingPoints];
-                                  newPoints[idx] = e.target.value;
-                                  setAnalysis(prev => ({ ...prev, sellingPoints: newPoints }));
-                                }}
-                                className="flex-1 p-2 bg-gray-50/50 border border-gray-100 rounded-lg text-[9px] font-medium focus:ring-1 focus:ring-black outline-none resize-none h-9 transition-all leading-tight"
-                              />
-                              <button 
-                                onClick={() => {
-                                  const newPoints = analysis.sellingPoints.filter((_, i) => i !== idx);
-                                  setAnalysis(prev => ({ ...prev, sellingPoints: newPoints }));
-                                }}
-                                className="absolute right-1 top-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-white rounded shadow-sm"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                            </div>
-                          ))}
-                          {analysis.sellingPoints.length < 3 && (
-                            <button 
-                              onClick={() => setAnalysis(prev => ({ ...prev, sellingPoints: [...prev.sellingPoints, '新增卖点信息...'] }))}
-                              className="w-full py-1.5 border border-dashed border-gray-200 rounded-lg text-[9px] font-bold text-gray-400 hover:border-black hover:text-black transition-all bg-gray-50/20"
-                            >
-                              + 添加卖点参数
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">画面底注 (可选)</label>
-                        <textarea 
-                          value={analysis.bottomInfo}
-                          onChange={(e) => setAnalysis(prev => ({ ...prev, bottomInfo: e.target.value }))}
-                          className="w-full p-2.5 bg-gray-50/50 rounded-xl border border-gray-100 focus:ring-1 focus:ring-black outline-none text-[9px] resize-none h-10 transition-all leading-snug"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 pt-3 border-t border-gray-50">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">渲染文字色</label>
-                      <div className="flex items-center gap-3 bg-gray-50/30 p-1.5 rounded-xl border border-gray-100">
-                        <input 
-                          type="color"
-                          value={analysis.textColor}
-                          onChange={(e) => setAnalysis(prev => ({ ...prev, textColor: e.target.value }))}
-                          className="w-8 h-8 rounded-lg cursor-pointer border-none p-0 overflow-hidden flex-shrink-0"
-                        />
-                        <span className="text-[10px] font-mono text-gray-600 font-bold">{analysis.textColor}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button 
-                    disabled={backgroundImages.length === 0 || isGenerating}
-                    onClick={handleDownload}
-                    className="w-full h-12 bg-black text-white rounded-[16px] font-bold text-xs transition-all flex items-center justify-center gap-2 hover:scale-[1.02] shadow-xl shadow-black/10 disabled:opacity-30 flex-shrink-0"
-                  >
-                    <Download size={14} />
-                    下载含排版成图
-                  </button>
-                </div>
-              </motion.div>
-              )
+              </div>
             ) : activeTab === 'gallery' ? (
               <motion.div 
                 key="gallery-content"
@@ -1010,44 +943,44 @@ export default function App() {
                   <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
                      {/* Title - Top Center */}
                      <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
-                      <h2 className="font-black uppercase tracking-tight whitespace-pre-line leading-tight">{analysis.title}</h2>
+                      <motion.h2 layoutId="full-title" className="font-black uppercase tracking-tight whitespace-pre-line leading-tight drop-shadow-sm">{analysis.title}</motion.h2>
                     </div>
 
                     {/* Left Side Callouts */}
                     <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
                       {analysis.sellingPoints.length >= 1 && (
-                        <div className="flex items-center gap-[1cqi]">
+                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
                           <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
                           <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                        </div>
+                        </motion.div>
                       )}
                     </div>
 
                     {/* Right Side Callouts */}
                     <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
                       {analysis.sellingPoints.length === 2 && (
-                        <div className="flex items-center gap-[1cqi]">
+                        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
                           <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
                           <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                        </div>
+                        </motion.div>
                       )}
                       {analysis.sellingPoints.length === 3 && (
                         <>
-                          <div className="flex items-center gap-[1cqi] -translate-y-[4cqi]">
+                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi] drop-shadow-sm">
                             <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
                             <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                          </div>
-                          <div className="flex items-center gap-[1cqi] translate-y-[4cqi]">
+                          </motion.div>
+                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi] drop-shadow-sm">
                             <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
                             <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
-                          </div>
+                          </motion.div>
                         </>
                       )}
                     </div>
 
                     {/* Bottom - Center */}
                     <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '92%', fontSize: '1.8cqi', width: '80%' }}>
-                      <p className="font-medium font-rounded whitespace-pre-line leading-tight">{analysis.bottomInfo}</p>
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight drop-shadow-sm">{analysis.bottomInfo}</motion.p>
                     </div>
                   </div>
                 </div>
@@ -1067,17 +1000,8 @@ export default function App() {
       </AnimatePresence>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Quicksand:wght@400;500;600;700&display=swap');
-        
-        body {
-          font-family: 'Inter', sans-serif;
-          -webkit-font-smoothing: antialiased;
-        }
-
-        .font-rounded {
-          font-family: 'Quicksand', sans-serif;
-        }
-
+        .font-rounded { font-family: 'Outfit', sans-serif; }
+        .font-black { font-weight: 900; }
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }
