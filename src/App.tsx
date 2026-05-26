@@ -4,16 +4,30 @@ import {
   Upload, 
   Sparkles, 
   Download, 
+  History as HistoryIcon, 
   Image as ImageIcon,
+  CheckCircle2,
   Loader2,
   Maximize2,
-  X
+  X,
+  ChevronLeft,
+  ArrowLeft
 } from 'lucide-react';
 
 import { analyzeProductImage, generateEcommerceImage, AnalysisResult } from './services/geminiService';
 import { saasService, SaasUser, SaasTool } from './services/saasService';
 
 // Types
+interface HistoryItem {
+  id: string;
+  originalImage: string;
+  backgroundImages: string[];
+  title: string;
+  sellingPoints: string[];
+  bottomInfo: string;
+  textColor: string;
+  timestamp: number;
+}
 const STYLES = [
   { id: 'crystal', name: '蓝绿碎晶', prompt: 'Commercial still-life photography of a perfume bottle. The environment is composed of sharp, multi-faceted emerald and teal crystals scattered on a reflective dark surface. Cinematic lighting with deep shadows and vibrant blue/green caustic light patterns. The background is a soft-focus deep green forest atmosphere with brilliant round bokeh. High contrast, luxury aesthetic, ultra-sharp details on the bottle glass and crystal edges.' },
   { id: 'mystery', name: '神秘氛围', prompt: 'mysterious dark atmosphere, moody lighting, subtle smoke, cinematic lighting, luxury product photography, dramatic shadows' },
@@ -56,6 +70,9 @@ export default function App() {
   const [isFallbackMode, setIsFallbackMode] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +216,21 @@ export default function App() {
 
       setBackgroundImages(bgImages);
       setCurrentStep(2);
+
+      // Add to session history
+      const id = Date.now().toString();
+      const newItem: HistoryItem = {
+        id,
+        originalImage,
+        backgroundImages: bgImages,
+        title: analysisResult.title,
+        sellingPoints: analysisResult.sellingPoints,
+        bottomInfo: analysisResult.bottomInfo,
+        textColor: analysisResult.textColor,
+        timestamp: Date.now(),
+      };
+      setHistory(prev => [newItem, ...prev.slice(0, 19)]);
+      setActiveHistoryId(id);
     } catch (err: any) {
       setError("生成失败：" + err.message);
     } finally {
@@ -328,6 +360,24 @@ export default function App() {
     }
   };
 
+  // Sync analysis changes to history item if active
+  useEffect(() => {
+    if (activeHistoryId) {
+      setHistory(prev => prev.map(item => {
+        if (item.id === activeHistoryId) {
+          return {
+            ...item,
+            title: analysis.title,
+            sellingPoints: analysis.sellingPoints,
+            bottomInfo: analysis.bottomInfo,
+            textColor: analysis.textColor
+          };
+        }
+        return item;
+      }));
+    }
+  }, [analysis, activeHistoryId]);
+
   const downloadImage = (base64: string, filename: string) => {
     const link = document.createElement('a');
     link.href = base64;
@@ -384,7 +434,7 @@ export default function App() {
 
         {/* Tab Content */}
         <div className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col lg:min-h-0 lg:overflow-hidden bg-white">
-          <div className="flex-1 flex flex-col h-full w-full max-w-[1200px] mx-auto lg:overflow-hidden">
+          <div className="flex-1 flex flex-row gap-6 h-full w-full max-w-[1500px] mx-auto lg:overflow-hidden">
             <AnimatePresence mode="wait">
               {currentStep === 1 ? (
                     <motion.div 
@@ -392,7 +442,7 @@ export default function App() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
-                      className="flex-1 flex flex-col md:flex-row gap-6 h-full"
+                      className="flex-1 flex flex-row gap-6 h-full w-full"
                     >
                       {/* Column 1: Upload (Left) */}
                       <div className="flex-1 flex flex-col gap-3 min-w-0 h-full">
@@ -668,6 +718,60 @@ export default function App() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Column 3: History Sidebar (Right, Collapsible) */}
+                      <div className={`transition-all duration-500 ease-in-out flex flex-col flex-none overflow-hidden ${isHistoryCollapsed ? 'w-12' : 'w-64'}`}>
+                        <div className="h-8 flex items-center justify-between px-2 mb-3 flex-none">
+                          {!isHistoryCollapsed && <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest font-mono">Archive / 历史</span>}
+                          <button 
+                            onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
+                            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-black transition-colors ml-auto"
+                          >
+                            {isHistoryCollapsed ? <ChevronLeft size={16} /> : <ArrowLeft size={16} className="rotate-180" />}
+                          </button>
+                        </div>
+                        
+                        <div className={`flex-1 overflow-hidden flex flex-col transition-opacity duration-300 ${isHistoryCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                          <div className="flex-1 bg-white border border-gray-100 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+                            {history.length === 0 ? (
+                              <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-20">
+                                <HistoryIcon size={32} className="text-black mb-4" />
+                                <p className="text-[10px] font-black uppercase tracking-widest">No Records</p>
+                              </div>
+                            ) : (
+                              history.map((record) => (
+                                <div 
+                                  key={record.id}
+                                  onClick={() => {
+                                    setActiveHistoryId(record.id);
+                                    setOriginalImage(record.originalImage);
+                                    setBackgroundImages(record.backgroundImages);
+                                    setActiveBgIndex(0);
+                                    setAnalysis({
+                                      title: record.title,
+                                      sellingPoints: record.sellingPoints,
+                                      bottomInfo: record.bottomInfo,
+                                      textColor: record.textColor || '#1f2937'
+                                    });
+                                    setCurrentStep(2);
+                                  }}
+                                  className={`group relative aspect-[3/4] rounded-[24px] overflow-hidden cursor-pointer border-2 transition-all ${activeHistoryId === record.id ? 'border-black shadow-xl ring-4 ring-black/5' : 'border-transparent hover:border-gray-200'}`}
+                                >
+                                  <img src={record.backgroundImages[0] || record.originalImage} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="History" />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-end p-4">
+                                    <p className="text-[10px] font-black text-white truncate uppercase tracking-tighter">{record.title || record.id}</p>
+                                  </div>
+                                  {activeHistoryId === record.id && (
+                                    <div className="absolute top-2 right-2 w-6 h-6 bg-black rounded-full flex items-center justify-center shadow-lg border border-white/20">
+                                      <CheckCircle2 size={12} className="text-white" />
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
               </AnimatePresence>
@@ -782,6 +886,13 @@ export default function App() {
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #D1D5DB;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}</style>
     </div>
