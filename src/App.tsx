@@ -3,35 +3,17 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Upload, 
   Sparkles, 
-  Trash2, 
   Download, 
-  History as HistoryIcon, 
   Image as ImageIcon,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
   Maximize2,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  ArrowLeft
+  X
 } from 'lucide-react';
 
 import { analyzeProductImage, generateEcommerceImage, AnalysisResult } from './services/geminiService';
 import { saasService, SaasUser, SaasTool } from './services/saasService';
 
 // Types
-interface HistoryItem {
-  id: string;
-  originalImage: string;
-  backgroundImages: string[];
-  title: string;
-  sellingPoints: string[];
-  bottomInfo: string;
-  textColor: string;
-  timestamp: number;
-}
-
 const STYLES = [
   { id: 'crystal', name: '蓝绿碎晶', prompt: 'Commercial still-life photography of a perfume bottle. The environment is composed of sharp, multi-faceted emerald and teal crystals scattered on a reflective dark surface. Cinematic lighting with deep shadows and vibrant blue/green caustic light patterns. The background is a soft-focus deep green forest atmosphere with brilliant round bokeh. High contrast, luxury aesthetic, ultra-sharp details on the bottle glass and crystal edges.' },
   { id: 'mystery', name: '神秘氛围', prompt: 'mysterious dark atmosphere, moody lighting, subtle smoke, cinematic lighting, luxury product photography, dramatic shadows' },
@@ -52,13 +34,11 @@ export default function App() {
   // SaaS State
   const [user, setUser] = useState<SaasUser | null>(null);
   const [tool, setTool] = useState<SaasTool | null>(null);
-  const [gallery, setGallery] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>('user_123'); // Default for demo
   const [toolId, setToolId] = useState<string>('tool_perfume'); // Default for demo
 
   // State
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-  const [activeTab, setActiveTab] = useState<'workspace' | 'gallery'>('workspace');
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult>({ 
     title: '', 
@@ -75,10 +55,7 @@ export default function App() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isFallbackMode, setIsFallbackMode] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const [activeHistoryId, setActiveHistoryId] = useState<string | null>(null);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -86,16 +63,6 @@ export default function App() {
 
   // SaaS Init
   useEffect(() => {
-    const loadGallery = async (uid: string, tid: string, role: number) => {
-      try {
-        const images = await saasService.getImages(uid, tid, role);
-        setGallery(images);
-      } catch (galleryErr) {
-        console.error("SaaS gallery load failed:", galleryErr);
-        // We don't clear user/tool if gallery fails
-      }
-    };
-
     const initSaaS = async (uid: string, tid: string) => {
       try {
         console.log("[SaaS] Initializing...", { uid, tid });
@@ -103,8 +70,6 @@ export default function App() {
         console.log("[SaaS] Launch Success:", data);
         setUser(data.user);
         setTool(data.tool);
-        // Load gallery after successful launch
-        loadGallery(uid, tid, data.user.role);
       } catch (err) {
         console.error("[SaaS] Launch failed:", err);
         // Only fallback to Demo User if we haven't received a real init from parent
@@ -157,48 +122,6 @@ export default function App() {
     };
   }, []);
 
-  // Load history from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('perfume_history');
-    if (saved) {
-      try {
-        setHistory(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to load history", e);
-      }
-    }
-  }, []);
-
-  // Save history
-  useEffect(() => {
-    if (history.length === 0) return;
-    try {
-      // Create a lightweight version for localStorage (only keep metadata or very limited items)
-      // LocalStorage is ~5MB total. One base64 image can be 1-2MB.
-      // We will only save the latest 2 items to be safe, and strip backgroundImages if they are too many.
-      const storageHistory = history.slice(0, 2).map(item => ({
-        ...item,
-        // Keep original if needed, but maybe limit to 1 BG
-        backgroundImages: item.backgroundImages.slice(0, 1)
-      }));
-
-      localStorage.setItem('perfume_history', JSON.stringify(storageHistory));
-    } catch (e) {
-      console.warn("LocalStorage quota exceeded. Only saving metadata for history.", e);
-      try {
-        // Fallback: Save metadata only (no images)
-        const metaOnly = history.slice(0, 10).map(item => ({
-          ...item,
-          originalImage: '',
-          backgroundImages: []
-        }));
-        localStorage.setItem('perfume_history', JSON.stringify(metaOnly));
-      } catch (innerE) {
-        localStorage.removeItem('perfume_history');
-      }
-    }
-  }, [history]);
-
   // Handle image upload
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -220,8 +143,6 @@ export default function App() {
         setBackgroundImages([]);
         setActiveBgIndex(0);
         setCurrentStep(1);
-        setActiveTab('workspace');
-        setActiveHistoryId(null);
       };
       reader.readAsDataURL(file);
     }
@@ -234,7 +155,6 @@ export default function App() {
     setIsFallbackMode(false);
     setError(null);
     setActiveBgIndex(0);
-    setActiveHistoryId(null);
     
     try {
       // SaaS Verify
@@ -279,28 +199,8 @@ export default function App() {
 
       setBackgroundImages(bgImages);
       setCurrentStep(2);
-      
-      // Refresh gallery
-      const images = await saasService.getImages(userId, toolId, user.role);
-      setGallery(images);
-
-      // Auto-save initial state to history (can be updated later)
-      const id = Date.now().toString();
-      const newItem: HistoryItem = {
-        id,
-        originalImage,
-        backgroundImages: bgImages,
-        title: analysisResult.title,
-        sellingPoints: analysisResult.sellingPoints,
-        bottomInfo: analysisResult.bottomInfo,
-        textColor: analysisResult.textColor,
-        timestamp: Date.now(),
-      };
-      setHistory(prev => [newItem, ...prev.slice(0, 19)]);
-      setActiveHistoryId(id);
     } catch (err: any) {
       setError("生成失败：" + err.message);
-      setActiveTab('workspace');
     } finally {
       setIsGenerating(false);
     }
@@ -421,24 +321,6 @@ export default function App() {
     });
   };
 
-  // Sync analysis changes to history item if active
-  useEffect(() => {
-    if (activeHistoryId) {
-      setHistory(prev => prev.map(item => {
-        if (item.id === activeHistoryId) {
-          return {
-            ...item,
-            title: analysis.title,
-            sellingPoints: analysis.sellingPoints,
-            bottomInfo: analysis.bottomInfo,
-            textColor: analysis.textColor
-          };
-        }
-        return item;
-      }));
-    }
-  }, [analysis, activeHistoryId]);
-
   const handleDownload = async () => {
     const final = await generateFinalComposite(backgroundImages[activeBgIndex]);
     if (final) {
@@ -502,11 +384,9 @@ export default function App() {
 
         {/* Tab Content */}
         <div className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col lg:min-h-0 lg:overflow-hidden bg-white">
-          <AnimatePresence mode="wait">
-            {activeTab === 'workspace' ? (
-              <div key="workspace-main" className="flex-1 flex flex-row gap-6 h-full w-full max-w-[1500px] mx-auto lg:overflow-hidden">
-                <div className="flex-1 flex flex-col md:flex-row gap-6 min-w-0 h-full">
-                  {currentStep === 1 ? (
+          <div className="flex-1 flex flex-col h-full w-full max-w-[1200px] mx-auto lg:overflow-hidden">
+            <AnimatePresence mode="wait">
+              {currentStep === 1 ? (
                     <motion.div 
                       key="step-1"
                       initial={{ opacity: 0, x: -10 }}
@@ -790,131 +670,10 @@ export default function App() {
                       </div>
                     </motion.div>
                   )}
-                </div>
-
-                {/* Column 3: History Sidebar (Right, Collapsible) */}
-                <div className={`transition-all duration-500 ease-in-out flex flex-col shrink-0 overflow-hidden ${isHistoryCollapsed ? 'w-12' : 'w-[220px] lg:w-[260px]'}`}>
-                  <div className="h-8 flex items-center justify-between px-2 mb-3">
-                    {!isHistoryCollapsed && <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest font-mono">Archive / 历史</span>}
-                    <button 
-                      onClick={() => setIsHistoryCollapsed(!isHistoryCollapsed)}
-                      className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-300 hover:text-black transition-colors ml-auto"
-                    >
-                      {isHistoryCollapsed ? <ChevronLeft size={16} /> : <ArrowLeft size={16} className="rotate-180" />}
-                    </button>
-                  </div>
-                  
-                  <div className={`flex-1 overflow-hidden flex flex-col transition-opacity duration-300 ${isHistoryCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                    <div className="flex-1 bg-white border border-gray-100 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
-                      {history.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-20">
-                          <HistoryIcon size={32} className="text-black mb-4" />
-                          <p className="text-[10px] font-black uppercase tracking-widest">No Records</p>
-                        </div>
-                      ) : (
-                        history.map((record) => (
-                          <div 
-                            key={record.id}
-                            onClick={() => {
-                              setActiveHistoryId(record.id);
-                              setOriginalImage(record.originalImage);
-                              setBackgroundImages(record.backgroundImages);
-                              setActiveBgIndex(0);
-                              setAnalysis({
-                                title: record.title,
-                                sellingPoints: record.sellingPoints,
-                                bottomInfo: record.bottomInfo,
-                                textColor: record.textColor || '#1f2937'
-                              });
-                              setCurrentStep(2);
-                            }}
-                            className={`group relative aspect-[3/4] rounded-[24px] overflow-hidden cursor-pointer border-2 transition-all ${activeHistoryId === record.id ? 'border-black shadow-xl ring-4 ring-black/5' : 'border-transparent hover:border-gray-200'}`}
-                          >
-                            <img src={record.backgroundImages[0] || record.originalImage} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="History" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-all flex flex-col justify-end p-4">
-                              <p className="text-[10px] font-black text-white truncate uppercase tracking-tighter">{record.title || record.id}</p>
-                            </div>
-                            {activeHistoryId === record.id && (
-                              <div className="absolute top-2 right-2 w-6 h-6 bg-black rounded-full flex items-center justify-center shadow-lg border border-white/20">
-                                <CheckCircle2 size={12} className="text-white" />
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : activeTab === 'gallery' ? (
-              <motion.div 
-                key="gallery-content"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="w-full max-w-7xl mx-auto pb-10"
-              >
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h2 className="text-2xl font-black text-gray-900">我的生成记录</h2>
-                    <p className="text-sm text-gray-400 mt-1">最近 30 天生成的所有结果图已入库</p>
-                  </div>
-                  <button 
-                    onClick={async () => {
-                      if (user) {
-                        const images = await saasService.getImages(userId, toolId, user.role);
-                        setGallery(images);
-                      }
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-all"
-                  >
-                    <HistoryIcon size={14} />
-                    刷新列表
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {gallery.map((img) => (
-                    <div key={img.id} className="group relative bg-white rounded-3xl border border-gray-100 p-2 shadow-sm hover:shadow-xl transition-all">
-                      <div className="aspect-square rounded-2xl overflow-hidden bg-gray-50 relative">
-                        <img src={img.url} alt={img.fileName} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                          <button 
-                            onClick={() => downloadImage(img.url, img.fileName)}
-                            className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center text-black hover:scale-110 transition-transform"
-                          >
-                            <Download size={18} />
-                          </button>
-                          <button 
-                            onClick={async () => {
-                              if (confirm('确定要删除这张图片吗？')) {
-                                await saasService.deleteImage(img.id, userId, user?.role || 1);
-                                setGallery(prev => prev.filter(i => i.id !== img.id));
-                              }
-                            }}
-                            className="w-10 h-10 bg-white shadow-sm rounded-full flex items-center justify-center text-red-500 hover:scale-110 transition-transform"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{new Date(img.createdAt).toLocaleDateString()}</p>
-                        <p className="text-[11px] font-bold text-gray-800 truncate mt-1">{img.fileName.split('/').pop()}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {gallery.length === 0 && (
-                    <div className="col-span-full py-20 text-center bg-gray-50 rounded-[40px] border border-dashed border-gray-100">
-                      <ImageIcon size={40} className="mx-auto text-gray-200 mb-4" />
-                      <p className="text-sm font-bold text-gray-300">暂无图片记录</p>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ) : null}</AnimatePresence>
-        </div>
-      </main>
+              </AnimatePresence>
+            </div>
+          </div>
+        </main>
 
       {/* Fullscreen Overlay */}
       <AnimatePresence>
