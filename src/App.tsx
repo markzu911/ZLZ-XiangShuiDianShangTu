@@ -310,6 +310,15 @@ export default function App() {
   const generateFinalComposite = async (bgSrc: string): Promise<string> => {
     if (!bgSrc) return '';
     
+    // Ensure fonts are loaded before drawing to canvas
+    try {
+      await document.fonts.load('900 12px "Inter"');
+      await document.fonts.load('bold 12px "Outfit"');
+      await document.fonts.load('500 12px "Outfit"');
+    } catch (e) {
+      console.warn("Fonts might not be fully loaded for canvas:", e);
+    }
+
     return new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -326,32 +335,34 @@ export default function App() {
         const w = canvas.width;
         const h = canvas.height;
         const base = w; // Use width as base for CQI equivalent sizing
-        const padding = h * 0.08;
         
         ctx.fillStyle = analysis.textColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
+        // Apply shadow to all text (mimic drop-shadow-sm)
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+        ctx.shadowBlur = base * 0.005;
+        ctx.shadowOffsetY = base * 0.002;
+
         // 1. Title: Proportional top center
         const titleSize = Math.floor(base * 0.035);
-        ctx.font = `black 900 ${titleSize}px "Inter", sans-serif`;
+        ctx.font = `900 ${titleSize}px "Inter", sans-serif`;
         const titleLines = (analysis.title || '').split('\n');
+        const titleLineHeight = titleSize * 1.1;
         titleLines.forEach((line, i) => {
-          ctx.fillText(line, w / 2, h * 0.115 + (i * titleSize * 1.2));
+          ctx.fillText(line, w / 2, h * 0.115 + (i * titleLineHeight));
         });
 
         // 2. Selling Points: Proportional mid section
         const itemSize = Math.floor(base * 0.025);
-        ctx.font = `bold ${itemSize}px "Outfit", sans-serif`;
+        ctx.font = `700 ${itemSize}px "Outfit", sans-serif`;
         ctx.textBaseline = 'middle';
         
         const drawItem = (text: string, xAnchor: number, yAnchorOrigin: number, align: CanvasTextAlign) => {
           const lines = (text || '').split('\n');
-          const lineHeight = itemSize * 1.2;
+          const lineHeight = itemSize * 1.15;
           const totalTextHeight = lines.length * lineHeight;
-          
-          // Calculate overall offset if item is shifted (p2, p3 in 3-point layout)
-          const startY = yAnchorOrigin - (totalTextHeight / 2) + (itemSize / 2);
           
           ctx.save();
           ctx.textAlign = align;
@@ -360,18 +371,16 @@ export default function App() {
           const gap = base * 0.01; // 1cqi
           
           // Dot Position
-          // In CSS, the anchor is the outer edge of the group.
           const dotX = align === 'right' ? xAnchor - dotRadius : xAnchor + dotRadius;
           const textX = align === 'right' ? xAnchor - (dotRadius * 2) - gap : xAnchor + (dotRadius * 2) + gap;
 
-          // Draw Dot at the center of the first line (or relative to group center?) 
-          // For multi-line, we keep the dot aligned with the center of the text block for simplicity or first line?
-          // The CSS layout aligns the flex row which vertically centers the dot relative to the text block.
+          // Draw Dot
           ctx.beginPath();
           ctx.arc(dotX, yAnchorOrigin, dotRadius, 0, Math.PI * 2);
           ctx.fill();
           
-          // Draw Lines
+          // Draw Lines centered vertically around yAnchorOrigin
+          const startY = yAnchorOrigin - (totalTextHeight / 2) + (lineHeight / 2);
           lines.forEach((line, i) => {
             ctx.fillText(line, textX, startY + (i * lineHeight));
           });
@@ -380,9 +389,9 @@ export default function App() {
 
         const points = analysis.sellingPoints;
         const midY = h * 0.5;
-        const leftAnchor = w * 0.3; // Further from center 35 -> 30
-        const rightAnchor = w * 0.7; // Further from center 65 -> 70
-        const vertSpread = h * 0.08; // Proportional spread
+        const leftAnchor = w * 0.3; 
+        const rightAnchor = w * 0.7; 
+        const vertSpread = h * 0.08; 
 
         if (points.length === 1) {
           drawItem(points[0], leftAnchor, midY, 'right');
@@ -401,8 +410,9 @@ export default function App() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         const bottomLines = (analysis.bottomInfo || '').split('\n');
+        const bottomLineHeight = bottomSize * 1.1;
         bottomLines.forEach((line, i) => {
-          ctx.fillText(line, w / 2, h * 0.92 + (i * bottomSize * 1.2));
+          ctx.fillText(line, w / 2, h * 0.92 + (i * bottomLineHeight));
         });
 
         resolve(canvas.toDataURL('image/png'));
@@ -511,30 +521,27 @@ export default function App() {
                         </div>
                         <div className="flex-1 bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col overflow-hidden relative">
                           <div className="flex-1 w-full bg-gray-50/30 relative overflow-hidden flex items-center justify-center p-8">
-                            {!originalImage ? (
-                              <div 
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-full h-full border-2 border-dashed border-gray-100 rounded-[28px] hover:border-black hover:bg-white transition-all flex flex-col items-center justify-center gap-6 cursor-pointer bg-transparent"
-                              >
-                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                                  <Upload className="text-black w-6 h-6" />
-                                </div>
-                                <div className="text-center">
-                                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">载入原始影像</h3>
-                                  <p className="text-[10px] text-gray-400 mt-1 font-medium italic">Supports PNG, JPG @ Studio Shots</p>
-                                </div>
-                              </div>
-                            ) : (
-                              <div 
-                                className="relative h-full max-w-full rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgb(0,0,0,0.15)] bg-white flex items-center justify-center cursor-zoom-in group"
-                                style={{ aspectRatio: aspectRatio.replace(':', '/') }}
-                                onClick={() => setIsFullScreen(true)}
-                              >
-                                <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
+                            <div 
+                              className="relative h-full max-w-full rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgb(0,0,0,0.15)] bg-white flex items-center justify-center cursor-pointer group transition-all"
+                              style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+                              onClick={() => !originalImage ? fileInputRef.current?.click() : setIsFullScreen(true)}
+                            >
+                              <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
+                                {!originalImage ? (
+                                  <div className="flex flex-col items-center justify-center gap-4 text-center px-6">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                      <Upload className="text-black w-6 h-6" />
+                                    </div>
+                                    <div>
+                                      <h3 className="text-xs font-black text-gray-900 uppercase tracking-tighter">载入原始影像</h3>
+                                      <p className="text-[9px] text-gray-400 mt-1 font-medium italic">Supports PNG, JPG @ Studio Shots</p>
+                                    </div>
+                                  </div>
+                                ) : (
                                   <img src={originalImage} alt="Source" className="absolute inset-0 w-full h-full object-contain" />
-                                </div>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                           <div className="h-16 border-t border-gray-50 flex items-center px-10 bg-white justify-between">
                             <span className="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">Material Input Stage</span>
@@ -549,7 +556,7 @@ export default function App() {
                       </div>
 
                       {/* Column 2: Configuration (Middle) */}
-                      <div className="w-full md:w-[320px] lg:w-[380px] shrink-0 flex flex-col gap-4 h-full">
+                      <div className="w-full md:w-[320px] lg:w-[380px] flex-none flex flex-col gap-4 h-full">
                         <div className="h-8 flex items-center px-1">
                           <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">02 / Art Style</span>
                         </div>
@@ -713,7 +720,7 @@ export default function App() {
 
 
                       {/* Column 2: Editing Section (Middle) */}
-                      <div className="w-full md:w-[320px] lg:w-[380px] shrink-0 flex flex-col gap-3 h-full">
+                      <div className="w-full md:w-[320px] lg:w-[380px] flex-none flex flex-col gap-3 h-full">
                         <div className="h-8 flex items-center px-1">
                           <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">04 / Text Tuning</span>
                         </div>
