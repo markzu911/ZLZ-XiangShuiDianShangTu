@@ -520,30 +520,31 @@ export default function App() {
                           <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">01 / Products</span>
                         </div>
                         <div className="flex-1 bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col overflow-hidden relative">
-                          <div className="flex-1 w-full bg-gray-50/30 relative overflow-hidden flex items-center justify-center p-8">
-                            <div 
-                              className="relative h-full max-w-full rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgb(0,0,0,0.15)] bg-white flex items-center justify-center cursor-pointer group transition-all"
-                              style={{ aspectRatio: aspectRatio.replace(':', '/') }}
-                              onClick={() => !originalImage ? fileInputRef.current?.click() : setIsFullScreen(true)}
-                            >
-                              <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
-                                {!originalImage ? (
-                                  <div className="flex flex-col items-center justify-center gap-4 text-center px-6">
-                                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                      <Upload className="text-black w-6 h-6" />
-                                    </div>
-                                    <div>
-                                      <h3 className="text-xs font-black text-gray-900 uppercase tracking-tighter">载入原始影像</h3>
-                                      <p className="text-[9px] text-gray-400 mt-1 font-medium italic">Supports PNG, JPG @ Studio Shots</p>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <img src={originalImage} alt="Source" className="absolute inset-0 w-full h-full object-contain" />
-                                )}
+                          <div className="flex-1 w-full bg-gray-50/10 relative overflow-hidden flex items-center justify-center p-6 md:p-10">
+                            {originalImage ? (
+                              <div 
+                                className="relative max-h-full max-w-full rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgb(0,0,0,0.15)] flex items-center justify-center cursor-pointer group transition-all"
+                                onClick={() => setIsFullScreen(true)}
+                              >
+                                <img src={originalImage} alt="Source" className="block max-w-full max-h-[70vh] w-auto h-auto object-contain" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                               </div>
-                            </div>
+                            ) : (
+                              <div 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full aspect-[3/4] max-w-[400px] border-2 border-dashed border-gray-100 rounded-[28px] hover:border-black hover:bg-white transition-all flex flex-col items-center justify-center gap-6 cursor-pointer bg-white/50 shadow-sm"
+                              >
+                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                  <Upload className="text-black w-6 h-6" />
+                                </div>
+                                <div className="text-center">
+                                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">载入原始影像</h3>
+                                  <p className="text-[10px] text-gray-400 mt-1 font-medium italic">Supports PNG, JPG @ Studio Shots</p>
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <div className="h-16 border-t border-gray-50 flex items-center px-10 bg-white justify-between">
+                          <div className="h-16 border-t border-gray-50 flex items-center px-10 bg-white justify-between shrink-0">
                             <span className="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">Material Input Stage</span>
                             {originalImage && (
                               <button onClick={() => fileInputRef.current?.click()} className="text-[11px] font-black text-black flex items-center gap-2 hover:opacity-50 transition-all">
@@ -629,85 +630,86 @@ export default function App() {
                           </div>
                         </div>
                         <div className="flex-1 bg-white rounded-[32px] border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col overflow-hidden relative">
-                          <div className="flex-1 w-full bg-gray-50/30 relative overflow-hidden flex items-center justify-center p-8">
+                          <div className="flex-1 w-full bg-gray-50/10 relative overflow-hidden flex items-center justify-center p-6 md:p-10">
                             {(() => {
                               const previewSrc = backgroundImages[activeBgIndex] || originalImage;
                               return (
                                 <div 
-                                  className="relative h-full max-w-full rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgb(0,0,0,0.15)] bg-white flex items-center justify-center cursor-zoom-in group"
-                                  style={{ aspectRatio: aspectRatio.replace(':', '/') }}
+                                  className="relative max-h-full max-w-full rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgb(0,0,0,0.15)] flex items-center justify-center cursor-zoom-in group transition-all"
                                   onClick={() => (previewSrc ? setIsFullScreen(true) : null)}
                                 >
-                                  <div style={{ containerType: 'size' }} className="relative w-full h-full flex items-center justify-center">
-                                    {previewSrc ? (
-                                      <img src={previewSrc} alt="Preview" className="absolute inset-0 w-full h-full object-contain" />
-                                    ) : (
-                                      <div className="flex flex-col items-center justify-center text-gray-300 gap-4">
-                                        <div className="w-16 h-16 rounded-full border-4 border-dashed border-gray-100 flex items-center justify-center">
-                                          <ImageIcon size={32} />
+                                  {previewSrc ? (
+                                    <>
+                                      <img src={previewSrc} alt="Preview" className="block max-w-full max-h-[70vh] w-auto h-auto object-contain" />
+                                      <div style={{ containerType: 'size' }} className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div className="absolute inset-0 flex flex-col" style={{ color: analysis.textColor }}>
+                                          {/* Title - Top Center */}
+                                          <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
+                                            <motion.h2 
+                                              layoutId="prev-title"
+                                              className="font-black uppercase tracking-tight whitespace-pre-line leading-tight drop-shadow-sm"
+                                            >
+                                              {analysis.title}
+                                            </motion.h2>
+                                          </div>
+    
+                                          {/* Callout Blocks - Left */}
+                                          <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
+                                            {analysis.sellingPoints.length >= 1 && (
+                                              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
+                                                <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
+                                                <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                              </motion.div>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Callout Blocks - Right */}
+                                          <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
+                                            {analysis.sellingPoints.length === 2 && (
+                                              <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
+                                                <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                                <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
+                                              </motion.div>
+                                            )}
+                                            {analysis.sellingPoints.length === 3 && (
+                                              <>
+                                                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi] drop-shadow-sm">
+                                                  <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                                  <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
+                                                </motion.div>
+                                                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi] drop-shadow-sm">
+                                                  <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
+                                                  <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
+                                                </motion.div>
+                                              </>
+                                            )}
+                                          </div>
+    
+                                          {/* Bottom Info */}
+                                          <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
+                                            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight drop-shadow-sm">
+                                              {analysis.bottomInfo}
+                                            </motion.p>
+                                          </div>
                                         </div>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em]">Wait for Input</p>
                                       </div>
-                                    )}
-                                    <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
-                                      {/* Title - Top Center */}
-                                      <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
-                                        <motion.h2 
-                                          layoutId="prev-title"
-                                          className="font-black uppercase tracking-tight whitespace-pre-line leading-tight drop-shadow-sm"
-                                        >
-                                          {analysis.title}
-                                        </motion.h2>
+                                    </>
+                                  ) : (
+                                    <div className="flex flex-col items-center justify-center text-gray-300 gap-4 p-20">
+                                      <div className="w-16 h-16 rounded-full border-4 border-dashed border-gray-100 flex items-center justify-center">
+                                        <ImageIcon size={32} />
                                       </div>
-
-                                      {/* Callout Blocks - Left */}
-                                      <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
-                                        {analysis.sellingPoints.length >= 1 && (
-                                          <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
-                                            <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
-                                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                          </motion.div>
-                                        )}
-                                      </div>
-                                      
-                                      {/* Callout Blocks - Right */}
-                                      <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
-                                        {analysis.sellingPoints.length === 2 && (
-                                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
-                                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                            <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                          </motion.div>
-                                        )}
-                                        {analysis.sellingPoints.length === 3 && (
-                                          <>
-                                            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi] drop-shadow-sm">
-                                              <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                              <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                            </motion.div>
-                                            <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi] drop-shadow-sm">
-                                              <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                              <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
-                                            </motion.div>
-                                          </>
-                                        )}
-                                      </div>
-
-                                      {/* Bottom Info */}
-                                      <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
-                                        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight drop-shadow-sm">
-                                          {analysis.bottomInfo}
-                                        </motion.p>
-                                      </div>
+                                      <p className="text-[10px] font-black uppercase tracking-[0.2em]">Wait for Input</p>
                                     </div>
-                                    <div className="absolute top-6 right-6 p-2.5 bg-black/5 hover:bg-black/10 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
-                                      <Maximize2 size={18} />
-                                    </div>
+                                  )}
+                                  <div className="absolute top-6 right-6 p-2.5 bg-black/5 hover:bg-black/10 backdrop-blur-md rounded-full text-white opacity-0 group-hover:opacity-100 transition-all pointer-events-none">
+                                    <Maximize2 size={18} />
                                   </div>
                                 </div>
                               )
                             })()}
                           </div>
-                          <div className="h-16 border-t border-gray-50 flex items-center px-10 bg-white justify-between">
+                          <div className="h-16 border-t border-gray-50 flex items-center px-10 bg-white justify-between shrink-0">
                             <span className="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">High Definition Preview</span>
                             <div className="flex items-center gap-8">
                               <button onClick={handleDownload} className="text-[11px] font-black text-black flex items-center gap-2 hover:opacity-50 transition-all">
