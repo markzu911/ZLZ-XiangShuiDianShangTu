@@ -29,10 +29,10 @@ interface HistoryItem {
   timestamp: number;
 }
 const STYLES = [
-  { id: 'crystal', name: '蓝绿碎晶', prompt: 'Commercial still-life photography of a perfume bottle. The environment is composed of sharp, multi-faceted emerald and teal crystals scattered on a reflective dark surface. Cinematic lighting with deep shadows and vibrant blue/green caustic light patterns. The background is a soft-focus deep green forest atmosphere with brilliant round bokeh. High contrast, luxury aesthetic, ultra-sharp details on the bottle glass and crystal edges.' },
-  { id: 'mystery', name: '神秘氛围', prompt: 'mysterious dark atmosphere, moody lighting, subtle smoke, cinematic lighting, luxury product photography, dramatic shadows' },
-  { id: 'water', name: '金蓝水波', prompt: 'Surreal dynamic luxury photography. A product bottle surrounded by a crown of shimmering golden and deep blue liquid splashes. The liquid has a viscous, metallic quality with sharp crystalline reflections. Background is a dark blue ocean wave texture with brilliant amber and golden bokeh. High-speed photography style, ultra-sharp highlights, cinematic lighting, premium cosmetics aesthetic.' },
-  { id: 'silk', name: '裸色丝绸', prompt: 'resting on soft nude pink silk fabric folds, elegant drapery, warm soft lighting, luxurious feel, soft shadows' },
+  { id: 'crystal', name: '蓝绿碎晶', prompt: 'Commercial still-life photography. The environment is composed of sharp, multi-faceted emerald and teal crystals scattered on a reflective dark surface. Cinematic lighting with deep shadows and vibrant blue/green caustic light patterns. The background is a soft-focus deep green forest atmosphere with brilliant round bokeh. High contrast, luxury aesthetic. IMPORTANT: Maintain the exact original colors, appearance, and details of the product bottle without any color shifts.' },
+  { id: 'mystery', name: '神秘氛围', prompt: 'mysterious dark atmosphere, moody lighting, subtle smoke, cinematic lighting, luxury product photography, dramatic shadows. IMPORTANT: Keep the original product color and bottle details exactly as they appear in the source image.' },
+  { id: 'water', name: '金蓝水波', prompt: 'Surreal dynamic luxury photography. The environment features a crown of shimmering golden and deep blue liquid splashes around the product. The liquid has a viscous, metallic quality with sharp crystalline reflections. Background is a dark blue ocean wave texture with brilliant amber and golden bokeh. High-speed photography style, cinematic lighting. IMPORTANT: Do not change the color or appearance of the product bottle; it must look identical to the original material.' },
+  { id: 'silk', name: '裸色丝绸', prompt: 'The product rests on soft nude pink silk fabric folds, elegant drapery, warm soft lighting, luxurious feel, soft shadows. IMPORTANT: Ensure the product bottle maintains its original color, material texture, and transparency accurately.' },
 ];
 
 const PERSPECTIVES = [

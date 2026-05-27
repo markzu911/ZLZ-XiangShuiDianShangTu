@@ -81,6 +81,12 @@ export const generateEcommerceImage = async (
   
   const finalPrompt = `
     Generate a high-end, professional commercial product photography image for the perfume in the provided photo.
+    
+    CRITICAL REQUIREMENT: 
+    1. EXTREMELY IMPORTANT: You MUST preserve the exact original colors, shape, material appearance, and branding details of the product bottle shown in the source image. 
+    2. DO NOT change the color of the perfume liquid or the glass.
+    3. ONLY modify or generate the environment and background around the product.
+    
     Product: ${title}
     Description: ${description}
     Style: ${style}
@@ -88,7 +94,7 @@ export const generateEcommerceImage = async (
     Aspect Ratio: ${aspectRatio}
     Quality: ${quality}
 
-    The core requirement is to place this bottle in a stunning environment. 
+    The task is to place this identical bottle in a stunning, high-end environment that matches the requested style.
     Return the generated image as binary data (inlineData).
   `;
 
