@@ -57,6 +57,11 @@ app.post("/api/gemini", async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY missing" });
 
+  const startTime = Date.now();
+  const controller = new AbortController();
+  // Set a timeout of 55 seconds (just under typical 60s gateway timeout)
+  const timeoutId = setTimeout(() => controller.abort(), 55000);
+
   try {
     let targetModel = model || 'gemini-3.1-pro-preview';
     if (targetModel === 'gemini-3.1-pro-preview' && process.env.GEMINI_TEXT_MODEL) {
@@ -68,15 +73,34 @@ app.post("/api/gemini", async (req, res) => {
     const modelName = targetModel.startsWith('models/') ? targetModel : `models/${targetModel}`;
     const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${apiKey}`;
 
+    console.log(`[Gemini Proxy] Calling ${modelName}...`);
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: controller.signal
     });
 
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[Gemini Proxy] Error ${response.status}: ${errorText.substring(0, 200)}`);
+    }
+
     const data = await response.json();
+    const duration = Date.now() - startTime;
+    console.log(`[Gemini Proxy] ${modelName} responded in ${duration}ms with status ${response.status}`);
+    
     res.status(response.status).json(data);
   } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      console.error(`[Gemini Proxy] Request timed out after 55s`);
+      return res.status(504).json({ error: "Gemini API request timed out after 55s" });
+    }
+    console.error(`[Gemini Proxy] Exception: ${err.message}`);
     res.status(500).json({ error: err.message });
   }
 });

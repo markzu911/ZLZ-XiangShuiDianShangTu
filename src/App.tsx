@@ -150,13 +150,21 @@ export default function App() {
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        setError("文件太大，请上传小于10MB的图片");
+      if (file.size > 15 * 1024 * 1024) {
+        setError("文件太大，请上传小于15MB的图片");
         return;
       }
       const reader = new FileReader();
-      reader.onload = (event) => {
-        setOriginalImage(event.target?.result as string);
+      reader.onload = async (event) => {
+        const rawData = event.target?.result as string;
+        // Optimize image for AI processing
+        try {
+          const optimized = await resizeImage(rawData, 1200);
+          setOriginalImage(optimized);
+        } catch (e) {
+          setOriginalImage(rawData);
+        }
+        
         setError(null);
         setAnalysis({ 
           title: '', 
@@ -170,6 +178,40 @@ export default function App() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // Utility to resize images before sending to AI (helps prevent 504 timeouts)
+  const resizeImage = (base64: string, maxDim: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > maxDim) {
+            height *= maxDim / width;
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width *= maxDim / height;
+            height = maxDim;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject('Canvas context failed');
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85)); // Use JPEG for better compression
+      };
+      img.onerror = reject;
+      img.src = base64;
+    });
   };
 
   // Step 2 -> 3: Generate
