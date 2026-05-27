@@ -44,6 +44,13 @@ const PERSPECTIVES = [
 const RATIOS = ['1:1', '3:4', '4:3', '16:9'];
 const QUALITIES = ['1K', '2K', '4K'];
 
+const COLOR_PRESETS = [
+  { name: '曜黑', value: '#000000' },
+  { name: '暖白', value: '#FFFFFF' },
+  { name: '奢金', value: '#C5A059' },
+  { name: '翠绿', value: '#164E33' }
+];
+
 export default function App() {
   // SaaS State
   const [user, setUser] = useState<SaasUser | null>(null);
@@ -277,68 +284,63 @@ export default function App() {
         ctx.shadowBlur = base * 0.005;
         ctx.shadowOffsetY = base * 0.002;
 
-        // 1. Title: Proportional top center
-        const titleSize = Math.floor(base * 0.035);
+        // Layout constants (matching the Top-Left layout)
+        const startX = base * 0.05;
+        const startY = base * 0.05;
+
+        // 1. Title: Proportional top left
+        const titleSize = Math.floor(base * 0.04);
         ctx.font = `900 ${titleSize}px "Inter", sans-serif`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.50)'; // 50% opacity shadow
+        ctx.shadowBlur = base * 0.006;
+        ctx.shadowOffsetY = base * 0.003;
+        
         const titleLines = (analysis.title || '').split('\n');
         const titleLineHeight = titleSize * 1.1;
         titleLines.forEach((line, i) => {
-          ctx.fillText(line, w / 2, h * 0.115 + (i * titleLineHeight));
+          ctx.fillText(line, startX, startY + (i * titleLineHeight));
         });
 
-        // 2. Selling Points: Proportional mid section
-        const itemSize = Math.floor(base * 0.025);
-        ctx.font = `700 ${itemSize}px "Outfit", sans-serif`;
-        ctx.textBaseline = 'middle';
+        ctx.fillStyle = analysis.textColor;
+        titleLines.forEach((line, i) => {
+          ctx.fillText(line, startX, startY + (i * titleLineHeight));
+        });
+
+        // 2. Decoration Line
+        const lineY = startY + (titleLines.length * titleLineHeight) + (base * 0.015);
+        ctx.shadowColor = 'transparent'; // No shadow for line
+        ctx.fillStyle = 'white';
+        ctx.fillRect(startX, lineY, base * 0.08, Math.max(2, base * 0.003));
+
+        // 3. Selling Points: Below title and line
+        const itemSize = Math.floor(base * 0.022);
+        ctx.font = `500 ${itemSize}px "Outfit", sans-serif`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // 90% opacity white
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'left';
         
-        const drawItem = (text: string, xAnchor: number, yAnchorOrigin: number, align: CanvasTextAlign) => {
-          const lines = (text || '').split('\n');
-          const lineHeight = itemSize * 1.15;
-          const totalTextHeight = lines.length * lineHeight;
-          
-          ctx.save();
-          ctx.textAlign = align;
-          
-          const dotRadius = base * 0.004; // 0.4cqi
-          const gap = base * 0.01; // 1cqi
-          
-          // Dot Position
-          const dotX = align === 'right' ? xAnchor - dotRadius : xAnchor + dotRadius;
-          const textX = align === 'right' ? xAnchor - (dotRadius * 2) - gap : xAnchor + (dotRadius * 2) + gap;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = base * 0.004;
+        
+        let currentY = lineY + (base * 0.035);
+        const itemLineHeight = itemSize * 1.4;
 
-          // Draw Dot
-          ctx.beginPath();
-          ctx.arc(dotX, yAnchorOrigin, dotRadius, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Draw Lines centered vertically around yAnchorOrigin
-          const startY = yAnchorOrigin - (totalTextHeight / 2) + (lineHeight / 2);
-          lines.forEach((line, i) => {
-            ctx.fillText(line, textX, startY + (i * lineHeight));
+        analysis.sellingPoints.forEach((sp) => {
+          const spLines = (sp || '').split('\n');
+          spLines.forEach(line => {
+            ctx.fillText(line, startX, currentY);
+            currentY += itemLineHeight;
           });
-          ctx.restore();
-        };
-
-        const points = analysis.sellingPoints;
-        const midY = h * 0.5;
-        const leftAnchor = w * 0.3; 
-        const rightAnchor = w * 0.7; 
-        const vertSpread = h * 0.08; 
-
-        if (points.length === 1) {
-          drawItem(points[0], leftAnchor, midY, 'right');
-        } else if (points.length === 2) {
-          drawItem(points[0], leftAnchor, midY, 'right');
-          drawItem(points[1], rightAnchor, midY, 'left');
-        } else if (points.length === 3) {
-          drawItem(points[0], leftAnchor, midY, 'right');
-          drawItem(points[1], rightAnchor, midY - vertSpread, 'left');
-          drawItem(points[2], rightAnchor, midY + vertSpread, 'left');
-        }
+          currentY += itemSize * 0.6; // Extra gap between items
+        });
 
         // 3. Bottom Info: Proportional bottom center
         const bottomSize = Math.floor(base * 0.018);
         ctx.font = `500 ${bottomSize}px "Outfit", sans-serif`;
+        ctx.fillStyle = analysis.textColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         const bottomLines = (analysis.bottomInfo || '').split('\n');
@@ -572,52 +574,48 @@ export default function App() {
                                     <>
                                       <img src={previewSrc} alt="Preview" className="block max-w-full max-h-[70vh] w-auto h-auto object-contain" />
                                       <div style={{ containerType: 'size' }} className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <div className="absolute inset-0 flex flex-col" style={{ color: analysis.textColor }}>
-                                          {/* Title - Top Center */}
-                                          <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
+                                        <div className="absolute inset-0 flex flex-col">
+                                          {/* Top Left Content Group */}
+                                          <div className="absolute flex flex-col items-start gap-0" style={{ left: '5%', top: '5%', width: '90%' }}>
+                                            {/* Title */}
                                             <motion.h2 
                                               layoutId="prev-title"
-                                              className="font-black uppercase tracking-tight whitespace-pre-line leading-tight drop-shadow-sm"
+                                              className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
+                                              style={{ 
+                                                fontSize: '4cqi', 
+                                                color: analysis.textColor,
+                                                filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+                                              }}
                                             >
                                               {analysis.title}
                                             </motion.h2>
-                                          </div>
-    
-                                          {/* Callout Blocks - Left */}
-                                          <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
-                                            {analysis.sellingPoints.length >= 1 && (
-                                              <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
-                                                <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
-                                                <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                              </motion.div>
-                                            )}
-                                          </div>
-                                          
-                                          {/* Callout Blocks - Right */}
-                                          <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
-                                            {analysis.sellingPoints.length === 2 && (
-                                              <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
-                                                <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                                <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                              </motion.div>
-                                            )}
-                                            {analysis.sellingPoints.length === 3 && (
-                                              <>
-                                                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi] drop-shadow-sm">
-                                                  <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                                  <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                                                </motion.div>
-                                                <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi] drop-shadow-sm">
-                                                  <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                                                  <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
-                                                </motion.div>
-                                              </>
-                                            )}
+
+                                            {/* White Decoration Line */}
+                                            <div className="w-14 h-[0.3cqi] bg-white mt-[1.5cqi] mb-[2cqi] shadow-sm opacity-100" />
+
+                                            {/* Selling Points */}
+                                            <div className="flex flex-col gap-[1.5cqi]">
+                                              {analysis.sellingPoints.map((sp, i) => (
+                                                <motion.p 
+                                                  key={i}
+                                                  initial={{ opacity: 0, x: -5 }}
+                                                  animate={{ opacity: 1, x: 0 }}
+                                                  className="font-medium whitespace-pre-line leading-tight"
+                                                  style={{ 
+                                                    fontSize: '2.2cqi',
+                                                    color: 'rgba(255, 255, 255, 0.9)',
+                                                    filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
+                                                  }}
+                                                >
+                                                  {sp}
+                                                </motion.p>
+                                              ))}
+                                            </div>
                                           </div>
     
                                           {/* Bottom Info */}
                                           <div className="absolute left-1/2 -translate-x-1/2 text-center w-[80%]" style={{ top: '92%', fontSize: '1.8cqi' }}>
-                                            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight drop-shadow-sm">
+                                            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight drop-shadow-sm" style={{ color: analysis.textColor }}>
                                               {analysis.bottomInfo}
                                             </motion.p>
                                           </div>
@@ -663,46 +661,70 @@ export default function App() {
                               <textarea 
                                 value={analysis.title}
                                 onChange={e => setAnalysis({...analysis, title: e.target.value})}
-                                className="w-full p-4 bg-gray-50 border border-transparent rounded-[24px] text-xs font-black focus:bg-white focus:border-gray-200 outline-none transition-all resize-none h-28"
+                                className="w-full p-4 bg-gray-50 border border-transparent rounded-[24px] text-xs font-black focus:bg-white focus:border-gray-200 outline-none transition-all resize-none h-28 shadow-sm"
                                 placeholder="..."
                               />
                             </div>
                             <div className="space-y-2">
-                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">核心卖点点缀</label>
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">核心卖点点缀 (支持分行)</label>
                               <div className="space-y-2.5">
                                 {analysis.sellingPoints.map((sp, i) => (
-                                  <input 
+                                  <textarea 
                                     key={i}
                                     value={sp}
+                                    rows={2}
                                     onChange={e => {
                                       const next = [...analysis.sellingPoints];
                                       next[i] = e.target.value;
                                       setAnalysis({...analysis, sellingPoints: next});
                                     }}
-                                    className="w-full p-3.5 bg-gray-50 border border-transparent rounded-[16px] text-xs font-bold focus:bg-white focus:border-gray-200 outline-none transition-all"
+                                    className="w-full p-3.5 bg-gray-50 border border-transparent rounded-[16px] text-xs font-bold focus:bg-white focus:border-gray-200 outline-none transition-all resize-none shadow-sm"
+                                    placeholder={`卖点 ${i + 1}`}
                                   />
                                 ))}
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">基础详情语</label>
-                              <input 
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">基础详情语 (支持分行)</label>
+                              <textarea 
                                 value={analysis.bottomInfo}
+                                rows={2}
                                 onChange={e => setAnalysis({...analysis, bottomInfo: e.target.value})}
-                                className="w-full p-3.5 bg-gray-50 border border-transparent rounded-[16px] text-[11px] font-medium focus:bg-white focus:border-gray-200 outline-none transition-all"
+                                className="w-full p-3.5 bg-gray-50 border border-transparent rounded-[16px] text-[11px] font-medium focus:bg-white focus:border-gray-200 outline-none transition-all resize-none shadow-sm"
+                                placeholder="底部详情信息..."
                               />
                             </div>
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">文字调色盘</label>
-                              <div className="flex gap-2">
-                                <input 
-                                  type="color" 
-                                  value={analysis.textColor}
-                                  onChange={e => setAnalysis({...analysis, textColor: e.target.value})}
-                                  className="w-14 h-14 p-0 rounded-[18px] border-none cursor-pointer overflow-hidden shadow-sm"
-                                />
-                                <div className="flex-1 px-5 flex items-center bg-gray-50 rounded-[18px]">
-                                  <span className="text-[11px] font-mono font-bold text-gray-400">{analysis.textColor}</span>
+                            <div className="space-y-3">
+                              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">文字预设颜色</label>
+                              <div className="grid grid-cols-4 gap-2">
+                                {COLOR_PRESETS.map((preset) => (
+                                  <button
+                                    key={preset.value}
+                                    onClick={() => setAnalysis({...analysis, textColor: preset.value})}
+                                    className={`group relative h-10 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
+                                      analysis.textColor === preset.value ? 'border-black bg-black text-white' : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-300'
+                                    }`}
+                                  >
+                                    <div className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: preset.value }} />
+                                    <span className="text-[8px] font-bold uppercase">{preset.name}</span>
+                                    {analysis.textColor === preset.value && (
+                                      <motion.div layoutId="color-ring" className="absolute -inset-1 border-2 border-black rounded-xl pointer-events-none" />
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="pt-2">
+                                <label className="text-[9px] font-bold text-gray-300 uppercase tracking-widest mb-2 block">自定义取色</label>
+                                <div className="flex gap-2">
+                                  <input 
+                                    type="color" 
+                                    value={analysis.textColor}
+                                    onChange={e => setAnalysis({...analysis, textColor: e.target.value})}
+                                    className="w-12 h-12 p-0 rounded-[14px] border-none cursor-pointer overflow-hidden shadow-sm"
+                                  />
+                                  <div className="flex-1 px-4 flex items-center bg-gray-50 rounded-[14px] border border-transparent hover:border-gray-100 transition-all">
+                                    <span className="text-[10px] font-mono font-bold text-gray-400 uppercase">{analysis.textColor}</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -812,47 +834,50 @@ export default function App() {
                       />
 
                   {/* Proportional Text Overlay in Fullscreen */}
-                  <div className="absolute inset-0 pointer-events-none flex flex-col" style={{ color: analysis.textColor }}>
-                     {/* Title - Top Center */}
-                     <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '11.5%', fontSize: '3.5cqi', width: '80%' }}>
-                      <motion.h2 layoutId="full-title" className="font-black uppercase tracking-tight whitespace-pre-line leading-tight drop-shadow-sm">{analysis.title}</motion.h2>
-                    </div>
+                  <div className="absolute inset-0 pointer-events-none flex flex-col">
+                    {/* Top Left Content Group */}
+                    <div className="absolute flex flex-col items-start gap-0" style={{ left: '5%', top: '5%', width: '90%' }}>
+                      {/* Title */}
+                      <motion.h2 
+                        layoutId="full-title" 
+                        className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
+                        style={{ 
+                          fontSize: '4cqi', 
+                          color: analysis.textColor,
+                          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+                        }}
+                      >
+                        {analysis.title}
+                      </motion.h2>
 
-                    {/* Left Side Callouts */}
-                    <div className="absolute flex flex-col gap-[3cqi] items-end" style={{ left: '30%', top: '50%', transform: 'translate(-100%, -50%)', width: '30%' }}>
-                      {analysis.sellingPoints.length >= 1 && (
-                        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
-                          <span className="font-bold font-rounded whitespace-pre-line text-right leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[0]}</span>
-                          <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                        </motion.div>
-                      )}
-                    </div>
+                      {/* White Decoration Line */}
+                      <div className="w-14 h-[0.3cqi] bg-white mt-[1.5cqi] mb-[2cqi] shadow-sm opacity-100" />
 
-                    {/* Right Side Callouts */}
-                    <div className="absolute flex flex-col gap-[3cqi] items-start" style={{ left: '70%', top: '50%', transform: 'translate(0, -50%)', width: '30%' }}>
-                      {analysis.sellingPoints.length === 2 && (
-                        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] drop-shadow-sm">
-                          <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                          <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                        </motion.div>
-                      )}
-                      {analysis.sellingPoints.length === 3 && (
-                        <>
-                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] -translate-y-[4cqi] drop-shadow-sm">
-                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                            <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[1]}</span>
-                          </motion.div>
-                          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-[1cqi] translate-y-[4cqi] drop-shadow-sm">
-                            <div className="rounded-full flex-shrink-0" style={{ backgroundColor: analysis.textColor, width: '0.8cqi', height: '0.8cqi' }} />
-                            <span className="font-bold font-rounded whitespace-pre-line text-left leading-tight" style={{ fontSize: '2.5cqi' }}>{analysis.sellingPoints[2]}</span>
-                          </motion.div>
-                        </>
-                      )}
+                      {/* Selling Points */}
+                      <div className="flex flex-col gap-[1.5cqi]">
+                        {analysis.sellingPoints.map((sp, i) => (
+                          <motion.p 
+                            key={i}
+                            initial={{ opacity: 0, x: -5 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="font-medium whitespace-pre-line leading-tight"
+                            style={{ 
+                              fontSize: '2.2cqi',
+                              color: 'rgba(255, 255, 255, 0.9)',
+                              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
+                            }}
+                          >
+                            {sp}
+                          </motion.p>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Bottom - Center */}
                     <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: '92%', fontSize: '1.8cqi', width: '80%' }}>
-                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight drop-shadow-sm">{analysis.bottomInfo}</motion.p>
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-medium font-rounded whitespace-pre-line leading-tight drop-shadow-sm" style={{ color: analysis.textColor }}>
+                        {analysis.bottomInfo}
+                      </motion.p>
                     </div>
                   </div>
                 </div>
