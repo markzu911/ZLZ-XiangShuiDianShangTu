@@ -326,27 +326,23 @@ export default function App() {
         ctx.shadowBlur = base * 0.005;
         ctx.shadowOffsetY = base * 0.002;
 
-        // Layout constants (matching the Top-Left layout)
-        const startX = base * 0.05;
+        // Layout constants (matching the Top-Right corner layout)
+        const startX = w - base * 0.05;
         const startY = base * 0.05;
 
-        // 1. Title: Proportional top left
-        const titleSize = Math.floor(base * 0.04);
+        // 1. Title: Proportional top right
+        const titleSize = Math.floor(base * 0.048);
         ctx.font = `900 ${titleSize}px "Inter", sans-serif`;
-        ctx.textAlign = 'left';
+        ctx.textAlign = 'right';
         ctx.textBaseline = 'top';
         
         ctx.shadowColor = 'rgba(0, 0, 0, 0.50)'; // 50% opacity shadow
         ctx.shadowBlur = base * 0.006;
         ctx.shadowOffsetY = base * 0.003;
         
+        ctx.fillStyle = analysis.textColor;
         const titleLines = (analysis.title || '').split('\n');
         const titleLineHeight = titleSize * 1.1;
-        titleLines.forEach((line, i) => {
-          ctx.fillText(line, startX, startY + (i * titleLineHeight));
-        });
-
-        ctx.fillStyle = analysis.textColor;
         titleLines.forEach((line, i) => {
           ctx.fillText(line, startX, startY + (i * titleLineHeight));
         });
@@ -355,14 +351,15 @@ export default function App() {
         const lineY = startY + (titleLines.length * titleLineHeight) + (base * 0.015);
         ctx.shadowColor = 'transparent'; // No shadow for line
         ctx.fillStyle = 'white';
-        ctx.fillRect(startX, lineY, base * 0.08, Math.max(2, base * 0.003));
+        const lineWidth = base * 0.09;
+        ctx.fillRect(startX - lineWidth, lineY, lineWidth, Math.max(2, base * 0.003));
 
         // 3. Selling Points: Below title and line
-        const itemSize = Math.floor(base * 0.022);
+        const itemSize = Math.floor(base * 0.026);
         ctx.font = `500 ${itemSize}px "Outfit", sans-serif`;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // 90% opacity white
         ctx.textBaseline = 'top';
-        ctx.textAlign = 'left';
+        ctx.textAlign = 'right';
         
         ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
         ctx.shadowBlur = base * 0.004;
@@ -617,14 +614,14 @@ export default function App() {
                                       <img src={previewSrc} alt="Preview" className="block max-w-full max-h-[70vh] w-auto h-auto object-contain" />
                                       <div style={{ containerType: 'size' }} className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                         <div className="absolute inset-0 flex flex-col">
-                                          {/* Top Left Content Group */}
-                                          <div className="absolute flex flex-col items-start gap-0" style={{ left: '5%', top: '5%', width: '90%' }}>
+                                          {/* Top Right Content Group */}
+                                          <div className="absolute flex flex-col items-end gap-0" style={{ right: '5%', top: '5%', width: '90%' }}>
                                             {/* Title */}
                                             <motion.h2 
                                               layoutId="prev-title"
-                                              className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
+                                              className="font-black uppercase tracking-tight whitespace-pre-line leading-tight text-right"
                                               style={{ 
-                                                fontSize: '4cqi', 
+                                                fontSize: '4.8cqi', 
                                                 color: analysis.textColor,
                                                 filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
                                               }}
@@ -633,18 +630,18 @@ export default function App() {
                                             </motion.h2>
 
                                             {/* White Decoration Line */}
-                                            <div className="w-14 h-[0.3cqi] bg-white mt-[1.5cqi] mb-[2cqi] shadow-sm opacity-100" />
+                                            <div className="w-16 h-[0.3cqi] bg-white mt-[1.5cqi] mb-[2cqi] shadow-sm opacity-100" />
 
                                             {/* Selling Points */}
-                                            <div className="flex flex-col gap-[1.5cqi]">
+                                            <div className="flex flex-col items-end gap-[1.5cqi]">
                                               {analysis.sellingPoints.map((sp, i) => (
                                                 <motion.p 
                                                   key={i}
-                                                  initial={{ opacity: 0, x: -5 }}
+                                                  initial={{ opacity: 0, x: 5 }}
                                                   animate={{ opacity: 1, x: 0 }}
-                                                  className="font-medium whitespace-pre-line leading-tight"
+                                                  className="font-medium whitespace-pre-line leading-tight text-right"
                                                   style={{ 
-                                                    fontSize: '2.2cqi',
+                                                    fontSize: '2.6cqi',
                                                     color: 'rgba(255, 255, 255, 0.9)',
                                                     filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
                                                   }}
@@ -877,14 +874,14 @@ export default function App() {
 
                   {/* Proportional Text Overlay in Fullscreen */}
                   <div className="absolute inset-0 pointer-events-none flex flex-col">
-                    {/* Top Left Content Group */}
-                    <div className="absolute flex flex-col items-start gap-0" style={{ left: '5%', top: '5%', width: '90%' }}>
+                    {/* Top Right Content Group */}
+                    <div className="absolute flex flex-col items-end gap-0" style={{ right: '5%', top: '5%', width: '90%' }}>
                       {/* Title */}
                       <motion.h2 
                         layoutId="full-title" 
-                        className="font-black uppercase tracking-tight whitespace-pre-line leading-tight"
+                        className="font-black uppercase tracking-tight whitespace-pre-line leading-tight text-right"
                         style={{ 
-                          fontSize: '4cqi', 
+                          fontSize: '4.8cqi', 
                           color: analysis.textColor,
                           filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
                         }}
@@ -893,18 +890,18 @@ export default function App() {
                       </motion.h2>
 
                       {/* White Decoration Line */}
-                      <div className="w-14 h-[0.3cqi] bg-white mt-[1.5cqi] mb-[2cqi] shadow-sm opacity-100" />
+                      <div className="w-16 h-[0.3cqi] bg-white mt-[1.5cqi] mb-[2cqi] shadow-sm opacity-100" />
 
                       {/* Selling Points */}
-                      <div className="flex flex-col gap-[1.5cqi]">
+                      <div className="flex flex-col items-end gap-[1.5cqi]">
                         {analysis.sellingPoints.map((sp, i) => (
                           <motion.p 
                             key={i}
-                            initial={{ opacity: 0, x: -5 }}
+                            initial={{ opacity: 0, x: 5 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="font-medium whitespace-pre-line leading-tight"
+                            className="font-medium whitespace-pre-line leading-tight text-right"
                             style={{ 
-                              fontSize: '2.2cqi',
+                              fontSize: '2.6cqi',
                               color: 'rgba(255, 255, 255, 0.9)',
                               filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
                             }}
