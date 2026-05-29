@@ -65,7 +65,8 @@ export default function App() {
     title: '', 
     sellingPoints: [], 
     bottomInfo: '',
-    textColor: '#000000'
+    textColor: '#000000',
+    bottleDescription: ''
   });
   const [backgroundImages, setBackgroundImages] = useState<string[]>([]);
   const [activeBgIndex, setActiveBgIndex] = useState(0);
@@ -170,7 +171,8 @@ export default function App() {
           title: '', 
           sellingPoints: [], 
           bottomInfo: '',
-          textColor: '#000000'
+          textColor: '#000000',
+          bottleDescription: ''
         });
         setBackgroundImages([]);
         setActiveBgIndex(0);
@@ -236,8 +238,8 @@ export default function App() {
       const selectedP = PERSPECTIVES.find(p => p.id === perspective) || PERSPECTIVES[0];
       const bg = await generateEcommerceImage(
         originalImage,
-        '',
-        '',
+        analysisResult.title,
+        analysisResult.bottleDescription,
         promptStyle,
         aspectRatio,
         quality,

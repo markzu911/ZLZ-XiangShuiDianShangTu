@@ -3,6 +3,7 @@ export interface AnalysisResult {
   sellingPoints: string[];
   bottomInfo: string;
   textColor: string;
+  bottleDescription: string;
 }
 
 export const analyzeProductImage = async (base64Image: string): Promise<AnalysisResult> => {
@@ -14,7 +15,12 @@ export const analyzeProductImage = async (base64Image: string): Promise<Analysis
     2. 1-3 key selling points (in Chinese).
     3. A short bottom info line (in Chinese).
     4. A suitable dark/luxury text color (Hex code, like #1A1A1A or #2C2420).
-    Return strictly as JSON: { "title": "...", "sellingPoints": ["...", "..."], "bottomInfo": "...", "textColor": "..." }
+    5. A highly precise, extremely detailed visual description of the perfume bottle in English (as the "bottleDescription" field) for a high-end generative model to reconstruct it with 100% precision. Be exceptionally descriptive about:
+       - The exact color(s) of the perfume liquid, specifically noting any gradients, shifts, or transparency (e.g., "gradient shifting from warm orange-amber/tea-brown at the top to a deep dark brownish-black or black near the bottom").
+       - The thickness of the glass, shapes, and curves of the glass body.
+       - The styling, transparency, materials, and sparkling facets of the cap.
+       - The details of any paper labels, text, and borders.
+    Return strictly as JSON: { "title": "...", "sellingPoints": ["...", "..."], "bottomInfo": "...", "textColor": "...", "bottleDescription": "..." }
   `;
 
   const payload = {
@@ -53,7 +59,8 @@ export const analyzeProductImage = async (base64Image: string): Promise<Analysis
       title: parsed.title || "Untitled Fragrance",
       sellingPoints: Array.isArray(parsed.sellingPoints) ? parsed.sellingPoints : ["Elegant Design", "Pure Essence"],
       bottomInfo: parsed.bottomInfo || "探索感官新境界",
-      textColor: parsed.textColor || "#1A1A1A"
+      textColor: parsed.textColor || "#1A1A1A",
+      bottleDescription: parsed.bottleDescription || "A luxury perfume bottle with transparent thick glass and custom liquid gradients."
     };
 
   } catch (error) {
@@ -63,7 +70,8 @@ export const analyzeProductImage = async (base64Image: string): Promise<Analysis
       title: "香水设计专家",
       sellingPoints: ["精选原材料", "法式制香工艺"],
       bottomInfo: "探索感官新境界",
-      textColor: "#2C2420"
+      textColor: "#2C2420",
+      bottleDescription: "A luxury perfume bottle with transparent thick glass, a crystal styled cap, and elegant gold or amber gradient liquid."
     };
   }
 };
@@ -82,19 +90,18 @@ export const generateEcommerceImage = async (
   const finalPrompt = `
     Generate a high-end, professional commercial product photography image for the perfume in the provided photo.
     
-    CRITICAL REQUIREMENT: 
-    1. EXTREMELY IMPORTANT: You MUST preserve the exact original colors, shape, material appearance, and branding details of the product bottle shown in the source image. 
-    2. DO NOT change the color of the perfume liquid or the glass.
-    3. ONLY modify or generate the environment and background around the product.
+    CRITICAL PRODUCT FAITHFULNESS MANDATE (EXTREMELY IMPORTANT):
+    1. KEEP THE ORIGINAL PRODUCT BOTTLE EXACTLY UNCHANGED in its shape, texture, material transparency, brand labels, cap design, and MOST IMPORTANTLY, liquid colors.
+    2. THE ORIGINAL LIQUID COLOR MUST BE ABSOLUTELY PRESERVED: If the original has a rich gradient transition (e.g. warm golden/amber coffee-brown at the top changing to absolute deep espresso-black at the bottom), you MUST retain this exact rich, dark amber-to-black gradient liquid color. Do NOT make the liquid pale, standard transparent yellow, or any other green/teal shade.
+    3. The bottle features: ${description}
+    4. Only craft the high-fashion, high-concept photography environment, backdrop, and creative materials (such as crystals, water splashes, lighting, drapery) specified below, while placing this EXACT unchanged, identical dark-liquid bottle in the scene.
     
-    Product: ${title}
-    Description: ${description}
-    Style: ${style}
-    Perspective: ${perspective}
+    Product Style Theme: ${style}
+    Photography Perspective: ${perspective}
     Aspect Ratio: ${aspectRatio}
-    Quality: ${quality}
+    Quality Level: ${quality}
 
-    The task is to place this identical bottle in a stunning, high-end environment that matches the requested style.
+    Place this exact same bottle seamlessly in the scene with cinematic, realistic, and luxurious lighting reflecting beautifully on the thick glass of the bottle.
     Return the generated image as binary data (inlineData).
   `;
 
